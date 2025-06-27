@@ -10,7 +10,17 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cache:
+    type: redis
+
 server:
   port: 8080
   servlet:
     context-path: /livestream
+
+jwt:
+  signer-key: "0gXvmZeoBj0FPk+2JHne1dOOe8NNY0vm9u3OvAJCC9TVzx+u3tEC/YwQ3Q7aRE0F"

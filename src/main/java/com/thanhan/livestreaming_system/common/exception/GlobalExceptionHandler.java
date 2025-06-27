@@ -14,7 +14,7 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException ex) {
 
         return ResponseEntity.badRequest().body(ApiResponse.builder()
-                .message(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage())
+                .message(ex.getMessage())
                 .status(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
                 .build());
     }

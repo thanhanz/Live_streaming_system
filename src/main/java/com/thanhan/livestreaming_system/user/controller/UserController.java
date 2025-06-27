@@ -22,7 +22,7 @@ public class UserController {
 
     UserService userService;
 
-    @PostMapping
+    @PostMapping("/register")
     public ApiResponse<UserResponse> register(@RequestBody @Valid UserCreationRequest request) {
 
         return ApiResponse.<UserResponse>builder()

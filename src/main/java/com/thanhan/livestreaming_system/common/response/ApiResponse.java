@@ -17,4 +17,8 @@ public class ApiResponse<T> {
     int status;
     String message;
     T data;
+
+    public static <T> ApiResponse<T> success(int status, String message) {
+        return ApiResponse.success(status, message);
+    }
 }

@@ -4,7 +4,7 @@ public record UserResponse (
         String username,
         String firstName,
         String lastName,
-        String email,
-        String description) {
+        String email
+) {
 
 }

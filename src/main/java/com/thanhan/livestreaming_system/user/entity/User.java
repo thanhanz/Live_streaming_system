@@ -1,13 +1,12 @@
 package com.thanhan.livestreaming_system.user.entity;
 import jakarta.annotation.Nullable;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.UuidGenerator;
 
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -31,8 +30,12 @@ public class User {
     private String firstName;
     private String lastName;
     private String email;
-    private String description;
-
+    private Instant createdAt;
+    private Instant updatedAt;
     @Nullable
     private String avatar;
+
+    @OneToOne(mappedBy = "owner",cascade = CascadeType.ALL)
+    private Channel channel;
+
 }

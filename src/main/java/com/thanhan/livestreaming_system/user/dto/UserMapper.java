@@ -13,7 +13,6 @@ public class UserMapper {
         user.setEmail(request.email());
         user.setPassword(request.password());
         user.setUsername(request.username());
-        user.setDescription(request.description());
         return user;
     }
 
@@ -22,8 +21,7 @@ public class UserMapper {
                 user.getUsername(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getEmail(),
-                user.getDescription()
+                user.getEmail()
         );
     }
 

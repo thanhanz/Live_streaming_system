@@ -10,7 +10,6 @@ public record UserCreationRequest (
         @Size(min = 4, message = "USERNAME_INVALID")
         String username,
         @Size(min = 6, message = "PASSWORD_INVALID")
-        String password,
-        String description) {
+        String password) {
 
 }

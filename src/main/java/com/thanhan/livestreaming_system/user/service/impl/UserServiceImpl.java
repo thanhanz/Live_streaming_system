@@ -45,4 +45,10 @@ public class UserServiceImpl implements UserService {
 
         return UserMapper.toUserResponse(user);
     }
+
+    @Override
+    public User getUserByUsername(String username) {
+          return userRepository.findByUsername(username).orElseThrow(() ->
+                    new AppException(ErrorCode.USER_NOT_EXIST));
+    }
 }

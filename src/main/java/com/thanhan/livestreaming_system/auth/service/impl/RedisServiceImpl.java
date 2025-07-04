@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -38,9 +39,12 @@ public class RedisServiceImpl implements RedisService {
 
         SignedJWT signedJWT = SignedJWT.parse(accessToken);
         Long expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime().getTime();
+
+        Long TTL = expiryTime - System.currentTimeMillis();
+
         String key = blackListKey + accessToken;
 
-        redisTemplate.opsForValue().set(key, "true", expiryTime, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(key, "true", TTL, TimeUnit.MILLISECONDS);
 
         refreshTokenRepository.findByToken(refreshToken).ifPresent(
                 token -> {

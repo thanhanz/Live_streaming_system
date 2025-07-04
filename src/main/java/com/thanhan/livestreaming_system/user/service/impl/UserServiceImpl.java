@@ -2,7 +2,7 @@ package com.thanhan.livestreaming_system.user.service.impl;
 
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
-import com.thanhan.livestreaming_system.user.dto.UserMapper;
+import com.thanhan.livestreaming_system.user.dto.mapper.UserMapper;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.dto.request.UserCreationRequest;

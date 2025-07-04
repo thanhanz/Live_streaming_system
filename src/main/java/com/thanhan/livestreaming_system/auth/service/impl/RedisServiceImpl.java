@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.text.ParseException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
@@ -57,8 +59,13 @@ public class RedisServiceImpl implements RedisService {
 
     @Override
     public boolean isInBlackList(String token) {
-        String key = blackListKey + token;
-
-        return redisTemplate.hasKey(key);
+        try {
+            log.info("Check in blacklist");
+            String key = blackListKey + token;
+            return redisTemplate.hasKey(key) != null ? true : false;
+        } catch (Exception e) {
+            log.error("Check in blacklist exception", e);
+            return false;
+        }
     }
 }

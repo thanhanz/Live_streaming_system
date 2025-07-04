@@ -146,8 +146,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .subject(username)
                 .issuer("auth-service")
                 .issueTime(new Date())
+                /*
+                 *  #Remember change to MINUTE (Hours for testing)
+                 */
                 .expirationTime(new Date(
-                        Instant.now().plus(expirationTime, ChronoUnit.MINUTES).toEpochMilli()
+                        Instant.now().plus(expirationTime, ChronoUnit.HOURS).toEpochMilli()
                 ))
                 .claim("sub", username)
                 .build();

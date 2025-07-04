@@ -10,8 +10,17 @@ import org.springframework.web.context.request.WebRequest;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(value = Exception.class)
+    @ExceptionHandler(value = RuntimeException.class)
     ResponseEntity<ApiResponse> handleRuntimeException(RuntimeException ex) {
+
+        return ResponseEntity.badRequest().body(ApiResponse.builder()
+                .message(ex.getMessage())
+                .status(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
+                .build());
+    }
+
+    @ExceptionHandler(value = Exception.class)
+    ResponseEntity<ApiResponse> handleException(Exception ex) {
 
         return ResponseEntity.badRequest().body(ApiResponse.builder()
                 .message(ex.getMessage())

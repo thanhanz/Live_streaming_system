@@ -33,4 +33,5 @@ public class Channel {
 
     @Column(nullable = false, unique = true)
     private String streamKey;
+
 }

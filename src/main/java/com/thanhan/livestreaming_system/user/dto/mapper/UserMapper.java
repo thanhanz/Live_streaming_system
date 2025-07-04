@@ -1,4 +1,4 @@
-package com.thanhan.livestreaming_system.user.dto;
+package com.thanhan.livestreaming_system.user.dto.mapper;
 
 import com.thanhan.livestreaming_system.user.dto.request.UserCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;

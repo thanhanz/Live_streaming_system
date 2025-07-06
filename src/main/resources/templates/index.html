@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Live Stream</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+<h2>Live Stream (HLS)</h2>
+<video id="video" controls autoplay></video>
+
+<script>
+    const video = document.getElementById('video');
+    const hls = new Hls();
+    hls.loadSource('/index.m3u8'); // Tương ứng file ở ./hls/index.m3u8
+    hls.attachMedia(video);
+</script>
+</body>
+</html>

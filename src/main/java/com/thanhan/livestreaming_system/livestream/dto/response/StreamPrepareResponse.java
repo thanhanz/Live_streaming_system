@@ -1,4 +1,4 @@
 package com.thanhan.livestreaming_system.livestream.dto.response;
 
-public class StreamPrepareResponse {
+public record StreamPrepareResponse(String rtmpUrl, String streamKey) {
 }

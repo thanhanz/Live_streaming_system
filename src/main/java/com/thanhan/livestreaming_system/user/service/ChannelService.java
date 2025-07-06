@@ -14,6 +14,6 @@ public interface ChannelService {
     ChannelResponse getChannelById(String id);
     ChannelResponse getChannelByOwnerId(String ownerId);
     Long countFollower(Long channelId);
-
+    Channel findById(Long channelId);
     String generateStreamKey();
 }

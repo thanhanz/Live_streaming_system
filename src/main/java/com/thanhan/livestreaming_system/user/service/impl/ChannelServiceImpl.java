@@ -111,4 +111,9 @@ public class ChannelServiceImpl implements ChannelService {
     public String generateStreamKey() {
         return "";
     }
+
+    @Override
+    public Channel findById(Long channelId) {
+        return channelRepository.getChannelById(channelId).orElseThrow(() -> new RuntimeException("Channel not found!"));
+    }
 }

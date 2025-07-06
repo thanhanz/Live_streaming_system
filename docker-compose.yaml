@@ -27,7 +27,13 @@ services:
       - live-stream-network
     ports:
       - "1935:1935"  #OBS phat RTMP
-      #- "8080:80" #HTTP de xem HLS (Video restream) tu HLS
+      - "8082:81" #HTTP de xem HLS (Video restream) tu HLS
+    volumes:
+      - ./data:/video
+    depends_on:
+      live-stream-website:
+        condition: service_healthy
+
   redis:
     image: redis:latest
     container_name: redis
@@ -53,6 +59,11 @@ services:
         condition: service_started
     networks:
       - live-stream-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/livestream/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

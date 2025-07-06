@@ -15,11 +15,19 @@ spring:
       port: ${REDIS_PORT}
   cache:
     type: redis
+  web:
+    resources:
+      static-locations: file:./hls/
 
 server:
   port: 8081
   servlet:
     context-path: /livestream
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include=health:
 jwt:
   signer-key: "0gXvmZeoBj0FPk+2JHne1dOOe8NNY0vm9u3OvAJCC9TVzx+u3tEC/YwQ3Q7aRE0F"

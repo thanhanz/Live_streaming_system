@@ -1,4 +1,5 @@
 package com.thanhan.livestreaming_system.livestream.dto.request;
 
-public class StreamPrepareRequest {
+public record StreamPrepareRequest(Long channelId) {
+
 }

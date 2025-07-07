@@ -19,6 +19,12 @@ spring:
     resources:
       static-locations: file:./hls/
 
+#Config thymeleaf
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    enabled: true
+
 server:
   port: 8081
   servlet:

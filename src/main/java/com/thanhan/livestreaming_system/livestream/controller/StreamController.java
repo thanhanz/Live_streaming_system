@@ -5,12 +5,14 @@ import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRe
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
+import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +23,7 @@ public class StreamController {
 
     private static final Logger log = LoggerFactory.getLogger(StreamController.class);
     StreamService streamService;
+    FFmpegService ffmpegService;
 
     @GetMapping("/{id}")
     public ApiResponse<Stream> getStreamById(@PathVariable("id") String streamId) {
@@ -50,6 +53,8 @@ public class StreamController {
         }
 
         log.info("Accept: Valid stream key");
+        ffmpegService.startTranscode(request);
+
         return ApiResponse.<Void>builder()
                 .status(200)
                 .message("You are publishing")

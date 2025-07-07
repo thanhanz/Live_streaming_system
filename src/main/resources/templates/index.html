@@ -1,19 +1,166 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Live Stream</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <title>HLS Live Stream Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-<h2>Live Stream (HLS)</h2>
-<video id="video" controls autoplay></video>
+<h1>HLS Live Stream Test</h1>
+
+<div class="controls">
+    <label>Stream Key:
+        <input type="text" id="streamKey" value="test_stream_key" placeholder="Enter stream key">
+    </label>
+    <button onclick="startStream()">Start Stream</button>
+    <button onclick="stopStream()">Stop Stream</button>
+    <button onclick="checkStatus()">Check Status</button>
+</div>
+
+<div id="status" class="status">
+    Ready to test...
+</div>
+
+<video id="video" controls>
+    Your browser does not support the video tag.
+</video>
 
 <script>
     const video = document.getElementById('video');
-    const hls = new Hls();
-    hls.loadSource('/index.m3u8'); // Tương ứng file ở ./hls/index.m3u8
-    hls.attachMedia(video);
+    const statusDiv = document.getElementById('status');
+    const streamKeyInput = document.getElementById('streamKey');
+
+    function updateStatus(message) {
+        statusDiv.innerHTML = message;
+        console.log(message);
+    }
+
+    async function startStream() {
+        const streamKey = streamKeyInput.value;
+        if (!streamKey) {
+            updateStatus('Please enter a stream key');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8081/livestream/api/stream/on_publish?name=${streamKey}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            updateStatus(`Start Stream Response: ${result.message}`);
+
+            if (response.ok) {
+                // Wait a bit for FFmpeg to start
+                setTimeout(() => {
+                    playHLS(streamKey);
+                }, 3000);
+            }
+        } catch (error) {
+            updateStatus(`Error starting stream: ${error.message}`);
+        }
+    }
+
+    async function stopStream() {
+        const streamKey = streamKeyInput.value;
+        if (!streamKey) {
+            updateStatus('Please enter a stream key');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8081/livestream/on_done?name=${streamKey}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            updateStatus(`Stop Stream Response: ${result.message}`);
+
+            // Stop video
+            video.src = '';
+            video.load();
+        } catch (error) {
+            updateStatus(`Error stopping stream: ${error.message}`);
+        }
+    }
+
+    async function checkStatus() {
+        const streamKey = streamKeyInput.value;
+        if (!streamKey) {
+            updateStatus('Please enter a stream key');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8081/livestream/status/${streamKey}`);
+            const result = await response.json();
+
+            updateStatus(`
+                    Stream Status:<br>
+                    - Stream Key: ${result.data.streamKey}<br>
+                    - Valid: ${result.data.isValid}<br>
+                    - Transcoding: ${result.data.isTranscoding}<br>
+                    - HLS URL: ${result.data.hlsUrl}
+                `);
+        } catch (error) {
+            updateStatus(`Error checking status: ${error.message}`);
+        }
+    }
+
+    function playHLS(streamKey) {
+        const hlsUrl = `http://localhost:8082/hls/${streamKey}/index.m3u8`;
+        updateStatus(`Attempting to play HLS: ${hlsUrl}`);
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MEDIA_ATTACHED, function() {
+                updateStatus('HLS player attached to video element');
+            });
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                updateStatus('HLS manifest parsed successfully - ready to play!');
+                video.play();
+            });
+
+            hls.on(Hls.Events.ERROR, function(event, data) {
+                updateStatus(`HLS Error: ${data.type} - ${data.details}`);
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = hlsUrl;
+            updateStatus('Using native HLS support');
+        } else {
+            updateStatus('HLS not supported in this browser');
+        }
+    }
 </script>
 </body>
 </html>

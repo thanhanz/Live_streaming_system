@@ -29,7 +29,7 @@ services:
       - "1935:1935"  #OBS phat RTMP
       - "8082:81" #HTTP de xem HLS (Video restream) tu HLS
     volumes:
-      - ./data:/video
+      - ./hls:/var/www/html/hls
     depends_on:
       live-stream-website:
         condition: service_healthy
@@ -72,6 +72,18 @@ services:
       - DB_NAME=livestreaming_db
       - DB_USERNAME=postgres
       - DB_PASSWORD=1234
+    volumes:
+      - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
+
+#  ffmpeg:
+#    image: jrottenberg/ffmpeg
+#    container_name: ffmpeg-server
+#    volumes:
+#      - ./hls:/hls
+#    entrypoint: ["sleep", "infinity"]
+#    networks:
+#      - live-stream-network
+
 
 volumes:
   redis-data:

@@ -27,9 +27,10 @@ services:
       - live-stream-network
     ports:
       - "1935:1935"  #OBS phat RTMP
-      - "8082:81" #HTTP de xem HLS (Video restream) tu HLS
+      - "8082:81" #HTTP de xem HLS (index.m3u8) from OBS ->
     volumes:
       - ./hls:/var/www/html/hls
+      - ./dash:/var/www/html/dash
     depends_on:
       live-stream-website:
         condition: service_healthy
@@ -74,16 +75,7 @@ services:
       - DB_PASSWORD=1234
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
-
-#  ffmpeg:
-#    image: jrottenberg/ffmpeg
-#    container_name: ffmpeg-server
-#    volumes:
-#      - ./hls:/hls
-#    entrypoint: ["sleep", "infinity"]
-#    networks:
-#      - live-stream-network
-
+      - ./dash:/var/www/html/dash   # Mount DASH directory để FFmpeg có thể ghi
 
 volumes:
   redis-data:

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Xem livestream</title>
+</head>
+<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+<style>
+    body {
+        background-color: #000;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    video {
+        width: 80%;
+        max-width: 960px;
+        height: auto;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+    }
+</style>
+<body>
+<h2>Livestream đang phát</h2>
+<video id="videoPlayer" controls autoplay></video>
+
+<script th:inline="javascript">
+    const streamKey = /*[[${streamKey}]]*/ 'default-key';
+    const url = `http://localhost:8082/dash/${streamKey}/main_stream.mpd`;
+    const video = document.getElementById("videoPlayer");
+    const player = dashjs.MediaPlayer().create();
+    player.initialize(video, url, true);
+</script>
+
+</body>
+</html>
+

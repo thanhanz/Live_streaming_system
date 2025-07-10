@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 /postgres_data
 /hls
+/dash
 
 ### STS ###
 .apt_generated

@@ -2,5 +2,6 @@ package com.thanhan.livestreaming_system.livestream.service;
 
 public interface FFmpegService {
     
-    void startTranscode(String streamKey);
+    void transcodeToHls(String streamKey); //For upload
+    void transcodeToDash(String streamKey); //For streaming
 }

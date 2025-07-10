@@ -53,7 +53,8 @@ public class StreamController {
         }
 
         log.info("Accept: Valid stream key");
-        ffmpegService.startTranscode(request);
+//        ffmpegService.transcodeToHls(request);
+        ffmpegService.transcodeToDash(request);
 
         return ApiResponse.<Void>builder()
                 .status(200)

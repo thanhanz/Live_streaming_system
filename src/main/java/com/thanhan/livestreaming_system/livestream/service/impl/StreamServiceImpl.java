@@ -1,14 +1,14 @@
 package com.thanhan.livestreaming_system.livestream.service.impl;
 
-import com.thanhan.livestreaming_system.common.exception.AppException;
+import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.entity.StreamStatus;
 import com.thanhan.livestreaming_system.livestream.repository.StreamRepository;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
-import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.UserService;
@@ -17,11 +17,12 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,7 +51,7 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setRtmpUrl(rtmpUrl);
         streamRepository.save(streamSession);
 
-        return new StreamPrepareResponse(generateStreamKey, rtmpUrl);
+        return new StreamPrepareResponse(rtmpUrl, generateStreamKey);
     }
 
     @Override
@@ -94,5 +95,12 @@ public class StreamServiceImpl implements StreamService {
     @Override
     public Stream getStreamById(String streamId) {
         return streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
+    }
+
+    @Override
+    public List<StreamSessionResponse> getAllStreamsByChannelId(String channelId) {
+
+        return streamRepository.findByChannelId(Long.valueOf(channelId))
+                .stream().map(StreamMapper::toStreamResponse).collect(Collectors.toList());
     }
 }

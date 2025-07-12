@@ -1,39 +1,72 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <title>Xem livestream</title>
+    <meta charset="UTF-8">
+    <title>Pure dash.js fast switch</title>
+    <script src="https://cdn.jsdelivr.net/npm/dashjs@5.0.3/dist/legacy/umd/dash.all.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dashjs@5.0.3/contrib/akamai/controlbar/controlbar.min.css">
+
+    <style>
+        video {
+            width: 720px;
+            height: auto;
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
 </head>
-<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
-<style>
-    body {
-        background-color: #000;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    video {
-        width: 80%;
-        max-width: 960px;
-        height: auto;
-        border: 2px solid #ccc;
-        border-radius: 10px;
-    }
-</style>
 <body>
-<h2>Livestream đang phát</h2>
-<video id="videoPlayer" controls autoplay></video>
+
+<video id="videoPlayer" controls></video>
+
 
 <script th:inline="javascript">
-    const streamKey = /*[[${streamKey}]]*/ 'default-key';
-    const url = `http://localhost:8082/dash/${streamKey}/main_stream.mpd`;
-    const video = document.getElementById("videoPlayer");
-    const player = dashjs.MediaPlayer().create();
-    player.initialize(video, url, true);
-</script>
 
+    const streamKey = /*[[${streamKey}]]*/ 'default-key';
+    const videoSrc = `http://localhost:8082/dash/${streamKey}/main_stream.mpd`;
+
+    function init() {
+        const video = document.getElementById("videoPlayer");
+        const player = dashjs.MediaPlayer().create();
+
+        // Bật fast bitrate switching
+        player.updateSettings({
+            streaming: {
+                lowLatencyEnabled: true,
+                buffer: {
+                    fastSwitchEnabled: true,
+                },
+                scheduling: {
+                    scheduleWhilePaused: true
+                }
+            }
+        });
+
+        // Gắn player
+        player.initialize(video, videoSrc, true);
+        player.setAutoPlay(true);
+
+        // Log các chất lượng bitrate có sẵn
+        player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, () => {
+            const videoBitrates = player.getRepresentationsByType('video');
+            const representations = player.getCurrentRepresentationForType('video');
+
+            console.log("Available video bitrates:", videoBitrates);
+
+            console.log(`Current bitrate:` , representations);
+        });
+
+        // Optional: log khi bitrate thay đổi
+        player.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_REQUESTED, function (e) {
+            if (e.mediaType === 'video') {
+                const representations = player.getCurrentRepresentationForType('video');
+                console.log(`Switching to bitrate index:` , representations);
+            }
+        });
+
+    }
+
+    window.onload = init;
+</script>
 </body>
 </html>
-

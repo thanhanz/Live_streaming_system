@@ -1,0 +1,7 @@
+*
+!nginx.conf
+!Dockerfile
+
+*.log
+node_modules/
+.git/

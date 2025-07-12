@@ -92,7 +92,7 @@ public class FFmpegServiceImpl implements FFmpegService {
                         "[v480]scale=854:480[v480out]",
 
                 "-map", "[v1080out]", "-b:v:0", "5000k",
-                "-map", "[v720out]",  "-b:v:1", "2500k",
+                "-map", "[v720out]",  "-b:v:1", "2000k",
                 "-map", "[v480out]",  "-b:v:2", "1000k",
                 "-map", "0:a",         "-b:a",   "128k",
 
@@ -102,7 +102,9 @@ public class FFmpegServiceImpl implements FFmpegService {
                 "-f", "dash",
                 "-use_timeline", "1",
                 "-use_template", "1",
+                "-window_size",  "5",
                 "-seg_duration", "4",
+
                 "-init_seg_name", "init-$RepresentationID$.mp4",
                 "-media_seg_name", "chunk-$RepresentationID$-$Number$.m4s",
                 "-adaptation_sets", "id=0,streams=v id=1,streams=a",

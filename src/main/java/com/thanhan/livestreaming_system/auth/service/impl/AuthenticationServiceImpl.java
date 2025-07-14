@@ -8,7 +8,6 @@ import com.nimbusds.jwt.SignedJWT;
 import com.thanhan.livestreaming_system.auth.dto.request.AuthenticationRequest;
 import com.thanhan.livestreaming_system.auth.dto.request.IntrospectRequest;
 import com.thanhan.livestreaming_system.auth.dto.request.LogoutRequest;
-import com.thanhan.livestreaming_system.auth.dto.request.RefreshTokenRequest;
 import com.thanhan.livestreaming_system.auth.dto.response.AuthenticationResponse;
 import com.thanhan.livestreaming_system.auth.dto.response.IntrospectResponse;
 import com.thanhan.livestreaming_system.auth.entity.RefreshToken;
@@ -26,7 +25,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,7 +49,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Value("${jwt.signer-key}")
     protected String SIGNER_KEY;
 
-    protected final long expirationTime = 5; //15' cho access Token
+    protected final long expirationTime = 1; //15' cho access Token
 
 
     @Override
@@ -92,7 +90,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         boolean verified = signedJWT.verify(verifier);
 
         log.info("Verified: {}", verified);
-        log.info("Expiration: {}", expiration.after(new Date()));
+        log.info("Expired: {}", expiration.after(new Date()));
         log.info("Is logout: {}", isLogout);
 
         return IntrospectResponse.builder()

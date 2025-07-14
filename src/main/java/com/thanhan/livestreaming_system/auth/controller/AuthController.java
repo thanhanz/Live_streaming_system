@@ -29,6 +29,7 @@ import java.time.Duration;
 @RequestMapping("/auth")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Log4j2
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class AuthController {
 
     AuthenticationService authenticationService;
@@ -39,8 +40,8 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
                 .httpOnly(true)
-                .secure(false) //Set secure = true khi gui bang HTTPS
-                .path("/livestream/auth/")
+//                .secure(false) //Set secure = true khi gui bang HTTPS
+                .path("/")
                 .maxAge(Duration.ofDays(5))
                 .sameSite("Lax")
                 .build();
@@ -68,8 +69,8 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
                 .httpOnly(true)
-                .secure(false) //Set secure = true khi gui bang HTTPS
-                .path("/livestream/auth/")
+//                .secure(false) //Set secure = true khi gui bang HTTPS
+                .path("/")
                 .maxAge(Duration.ofDays(5))
                 .sameSite("Lax")
                 .build();
@@ -89,7 +90,7 @@ public class AuthController {
         authenticationService.logout(request, refreshToken);
 
         ResponseCookie rmCookie = ResponseCookie.from("refreshToken", "")
-                .path("/livestream/auth/")
+                .path("/")
                 .maxAge(0)
                 .httpOnly(true)
                 .build();

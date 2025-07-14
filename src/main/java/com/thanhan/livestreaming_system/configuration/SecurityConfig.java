@@ -3,6 +3,7 @@ package com.thanhan.livestreaming_system.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,34 +20,42 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.lang.reflect.Method;
 import java.util.List;
+
+import static org.springframework.http.HttpMethod.*;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final String[] PUBLIC_ENDPOINTS = {"/livestream/auth/log-in", "/livestream/auth/introspect", "/livestream/users/register"};
+    private final String[] PUBLIC_ENDPOINTS = { "/auth/log-in",
+                                                "/auth/introspect",
+                                                "/users/register",
+                                                "/auth/refresh",
+                                                "/auth/logout",
+    };
 
     @Value("${jwt.signer-key}")
     private String SIGNER_KEY;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-        http.authorizeHttpRequests(request -> {
-                    request
-                            .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
-                            .requestMatchers("/livestream/chat-websocket/**").permitAll()
-                            .anyRequest().permitAll();
-                })
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
-
-
+//    @Order(1)
+    public SecurityFilterChain publicEndpoints(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests(request ->
+                                request .requestMatchers(OPTIONS,"/**").permitAll()
+                                        .requestMatchers(POST, PUBLIC_ENDPOINTS).permitAll()
+                                        .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()))
+                                //Covert "SCOPE_... to ROLE_..."
+//                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+//                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
+        //Cai dat CORS de co the ket noi den Browser
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
-        //Bao ve endpoint
+        //Tat csrf chua can` thiet dung`
         http.csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
@@ -84,7 +93,7 @@ public class SecurityConfig {
                 "X-Requested-With"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -70,7 +70,7 @@ public class RedisServiceImpl implements RedisService {
         try {
             log.info("Check in blacklist");
             String key = blackListKey + token;
-            return redisTemplate.hasKey(key) != null ? true : false;
+            return redisTemplate.hasKey(key);
         } catch (Exception e) {
             log.error("Check in blacklist exception", e);
             return false;

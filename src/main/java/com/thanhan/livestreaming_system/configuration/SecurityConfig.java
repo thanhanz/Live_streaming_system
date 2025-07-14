@@ -34,7 +34,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(request -> {
-                    request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                    request
+                            .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                            .requestMatchers("/livestream/chat-websocket/**").permitAll()
                             .anyRequest().permitAll();
                 })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()));

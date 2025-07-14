@@ -18,8 +18,10 @@ spring:
   web:
     resources:
       static-locations: file:./hls/
-
-#Config thymeleaf
+  devtools:
+    livereload:
+      enabled: false
+  #Config thymeleaf
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
@@ -37,3 +39,7 @@ management:
         include=health:
 jwt:
   signer-key: "0gXvmZeoBj0FPk+2JHne1dOOe8NNY0vm9u3OvAJCC9TVzx+u3tEC/YwQ3Q7aRE0F"
+logging:
+  level:
+    root: info
+

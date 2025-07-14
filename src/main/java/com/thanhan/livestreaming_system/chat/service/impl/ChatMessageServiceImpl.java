@@ -1,5 +1,7 @@
 package com.thanhan.livestreaming_system.chat.service.impl;
 
+import com.thanhan.livestreaming_system.chat.dto.ChatMessageMapper;
+import com.thanhan.livestreaming_system.chat.dto.MessageResponse;
 import com.thanhan.livestreaming_system.chat.entity.ChatMessage;
 import com.thanhan.livestreaming_system.chat.repository.ChatMessageRepository;
 import com.thanhan.livestreaming_system.chat.service.ChatMessageService;
@@ -7,10 +9,12 @@ import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.bridge.Message;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -27,9 +31,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     UserService userService;
 
     @Override
-    public ChatMessage saveMessage(ChatMessage chatMessage, String streamId) {
+    @Transactional
+    public MessageResponse saveMessage(ChatMessage chatMessage, String streamId, String username) {
+        log.info("Save chat message with streamId: " + streamId);
 
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User u = userService.getUserByUsername(username);
         Stream stream = streamService.getStreamById(streamId);
 
@@ -37,6 +42,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         chatMessage.setStream(stream);
         chatMessage.setTimestamp(Instant.now());
 
-        return chatMessageRepository.save(chatMessage);
+        return ChatMessageMapper.toMessageResponse(chatMessageRepository.save(chatMessage));
     }
 }

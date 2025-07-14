@@ -1,4 +1,5 @@
 package com.thanhan.livestreaming_system.user.entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,7 +36,8 @@ public class User {
     @Nullable
     private String avatar;
 
-    @OneToOne(mappedBy = "owner",cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "owner",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Channel channel;
 
 }

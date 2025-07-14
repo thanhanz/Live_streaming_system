@@ -51,7 +51,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Value("${jwt.signer-key}")
     protected String SIGNER_KEY;
 
-    protected final long expirationTime = 15; //15' cho access Token
+    protected final long expirationTime = 5; //15' cho access Token
 
 
     @Override
@@ -101,8 +101,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public AuthenticationResponse refreshToken(RefreshTokenRequest request) throws JOSEException {
-        RefreshToken oldToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+    public AuthenticationResponse refreshToken(String refreshToken) throws JOSEException {
+        RefreshToken oldToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new EntityNotFoundException("Refresh token not found"));
 
         if (oldToken.isRevoked() || oldToken.getExpiresAt().isBefore(Instant.now())) {
@@ -126,8 +126,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public void logout(LogoutRequest request) throws JOSEException, ParseException {
-        redisService.addToBlackList(request.getAccessToken(), request.getRefreshToken());
+    public void logout(LogoutRequest request, String refreshToken) throws JOSEException, ParseException {
+        redisService.addToBlackList(request.getAccessToken(), refreshToken);
     }
 
     private void createNewRefreshToken(String token, User user) {
@@ -150,7 +150,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                  *  #Remember change to MINUTE (Hours for testing)
                  */
                 .expirationTime(new Date(
-                        Instant.now().plus(expirationTime, ChronoUnit.HOURS).toEpochMilli()
+                        Instant.now().plus(expirationTime, ChronoUnit.MINUTES).toEpochMilli()
                 ))
                 .claim("sub", username)
                 .build();

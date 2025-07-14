@@ -18,7 +18,7 @@ public enum ErrorCode {
     INVALID_MESSAGE_KEY(1012, "Message key for valid is wrong!"),
     USER_NOT_EXIST(4004, "User not exist"),
     UNAUTHENTICATED(4001, "Unauthenticated"),
-    REVOKED_TOKEN(4002, "Revoked or expired token"),
+    REVOKED_TOKEN(403, "Revoked or expired token"),
 
     ;
 

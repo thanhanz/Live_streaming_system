@@ -39,19 +39,18 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
                 .httpOnly(true)
-                .secure(true)
-                .path("/auth/refresh")
+                .secure(false) //Set secure = true khi gui bang HTTPS
+                .path("/livestream/auth/")
                 .maxAge(Duration.ofDays(5))
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
 
         return ResponseEntity.ok()
                         .header(HttpHeaders.SET_COOKIE, cookie.toString())
                         .body(ApiResponse.<AuthenticationResponse>builder()
+                                .message("Successfully logged in")
                                         .data(result)
                                         .build());
-
-
     }
 
     @PostMapping("/introspect")
@@ -63,19 +62,34 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshTokenRequest request) throws JOSEException {
-        return ApiResponse.<AuthenticationResponse>builder()
-                .message("Refresh Token successful")
-                .data(authenticationService.refreshToken(request))
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(@CookieValue String refreshToken) throws JOSEException {
+
+        AuthenticationResponse result = authenticationService.refreshToken(refreshToken);
+
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
+                .httpOnly(true)
+                .secure(false) //Set secure = true khi gui bang HTTPS
+                .path("/livestream/auth/")
+                .maxAge(Duration.ofDays(5))
+                .sameSite("Lax")
                 .build();
+
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(ApiResponse.<AuthenticationResponse>builder()
+                        .message("Refresh token successful!")
+                        .data(result)
+                        .build());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
-        authenticationService.logout(request);
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request,
+                                                    @CookieValue(value = "refreshToken", required = false) String refreshToken) throws ParseException, JOSEException {
+        authenticationService.logout(request, refreshToken);
 
         ResponseCookie rmCookie = ResponseCookie.from("refreshToken", "")
-                .path("/auth/refresh")
+                .path("/livestream/auth/")
                 .maxAge(0)
                 .httpOnly(true)
                 .build();
@@ -85,7 +99,6 @@ public class AuthController {
                         .body(ApiResponse.<Void>builder()
                                         .message("Logout success")
                                         .build());
-
     }
 
 

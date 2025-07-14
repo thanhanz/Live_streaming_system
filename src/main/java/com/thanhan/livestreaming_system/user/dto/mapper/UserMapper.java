@@ -18,6 +18,7 @@ public class UserMapper {
 
     public static UserResponse toUserResponse(User user) {
         return new UserResponse(
+                user.getId().toString(),
                 user.getUsername(),
                 user.getFirstName(),
                 user.getLastName(),

@@ -4,6 +4,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
+import com.thanhan.livestreaming_system.auth.entity.RefreshToken;
 import com.thanhan.livestreaming_system.auth.repository.RefreshTokenRepository;
 import com.thanhan.livestreaming_system.auth.service.RedisService;
 import lombok.AccessLevel;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -38,23 +40,29 @@ public class RedisServiceImpl implements RedisService {
     public void addToBlackList(String accessToken, String refreshToken) throws JOSEException, ParseException {
 
 //        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-
+//
         SignedJWT signedJWT = SignedJWT.parse(accessToken);
+
         Long expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime().getTime();
 
         Long TTL = expiryTime - System.currentTimeMillis();
 
         String key = blackListKey + accessToken;
 
+        log.info("Saving to Redis with key = {}, TTL = {}", key, TTL);
+
         redisTemplate.opsForValue().set(key, "true", TTL, TimeUnit.MILLISECONDS);
 
-        refreshTokenRepository.findByToken(refreshToken).ifPresent(
-                token -> {
-                    token.setRevoked(true);
-                    refreshTokenRepository.save(token);
-                }
-        );
+        Optional<RefreshToken> rt = refreshTokenRepository.findByToken(refreshToken);
 
+        if (rt.isPresent()) {
+            RefreshToken token = rt.get();
+            log.info("Found refresh token entity: {}", token);
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        } else {
+            log.warn("Refresh token not found in DB: {}", refreshToken);
+        }
     }
 
     @Override

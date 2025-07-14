@@ -16,6 +16,6 @@ public interface AuthenticationService {
     AuthenticationResponse authenticate(AuthenticationRequest request) throws JOSEException;
     IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException;
 //    SignedJWT verifyToken(String token) throws ParseException, JOSEException;
-    AuthenticationResponse refreshToken(RefreshTokenRequest request) throws JOSEException;
-    void logout(LogoutRequest request) throws JOSEException, ParseException;
+    AuthenticationResponse refreshToken(String refreshToken) throws JOSEException;
+    void logout(LogoutRequest request, String refreshToken) throws JOSEException, ParseException;
 }

@@ -45,6 +45,8 @@ public class SecurityConfig {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
                                         .requestMatchers(POST, PUBLIC_ENDPOINTS).permitAll()
+                                        .requestMatchers("/chat-websocket/**").permitAll()
+
                                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()))
@@ -52,6 +54,7 @@ public class SecurityConfig {
 //                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
 //                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
+
         //Cai dat CORS de co the ket noi den Browser
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 

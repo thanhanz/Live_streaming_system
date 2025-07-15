@@ -65,23 +65,22 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> refresh(@CookieValue String refreshToken) throws JOSEException {
 
-        AuthenticationResponse result = authenticationService.refreshToken(refreshToken);
+            AuthenticationResponse result = authenticationService.refreshToken(refreshToken);
 
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
-                .httpOnly(true)
-//                .secure(false) //Set secure = true khi gui bang HTTPS
-                .path("/")
-                .maxAge(Duration.ofDays(5))
-                .sameSite("Lax")
-                .build();
+            ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
+                    .httpOnly(true)
+    //                .secure(false) //Set secure = true khi gui bang HTTPS
+                    .path("/")
+                    .maxAge(Duration.ofDays(5))
+                    .sameSite("Lax")
+                    .build();
 
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(ApiResponse.<AuthenticationResponse>builder()
-                        .message("Refresh token successful!")
-                        .data(result)
-                        .build());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(ApiResponse.<AuthenticationResponse>builder()
+                            .message("Refresh token successful!")
+                            .data(result)
+                            .build());
     }
 
     @PostMapping("/logout")

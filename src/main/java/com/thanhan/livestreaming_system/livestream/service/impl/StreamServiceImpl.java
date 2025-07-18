@@ -9,6 +9,7 @@ import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.entity.StreamStatus;
 import com.thanhan.livestreaming_system.livestream.repository.StreamRepository;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
+import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.UserService;
@@ -17,6 +18,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -32,8 +34,7 @@ public class StreamServiceImpl implements StreamService {
 
     StreamRepository streamRepository;
     ChannelService channelService;
-    UserService userService;
-
+    RedisTemplate<String, String> redisTemplate;
     @Override
     public StreamPrepareResponse prepare(StreamPrepareRequest request) {
         Channel channel = channelService.findById(request.channelId());
@@ -89,6 +90,8 @@ public class StreamServiceImpl implements StreamService {
 
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
+
+        redisTemplate.delete(StreamCacheKey.isWatchingKey(streamSession.getId().toString()));
         streamRepository.save(streamSession);
     }
 

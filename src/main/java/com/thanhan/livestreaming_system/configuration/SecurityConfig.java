@@ -40,12 +40,12 @@ public class SecurityConfig {
     private String SIGNER_KEY;
 
     @Bean
-//    @Order(1)
     public SecurityFilterChain publicEndpoints(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
                                         .requestMatchers(POST, PUBLIC_ENDPOINTS).permitAll()
                                         .requestMatchers("/chat-websocket/**").permitAll()
+                                        .requestMatchers("/actuator/**").permitAll()
 
                                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->

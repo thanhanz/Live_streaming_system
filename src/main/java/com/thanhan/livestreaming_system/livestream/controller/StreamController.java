@@ -7,13 +7,24 @@ import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareRes
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
+import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/stream")
@@ -65,6 +76,7 @@ public class StreamController {
     @PostMapping("/finish")
     public ApiResponse<Void> finish(@RequestParam("name") String streamKey) {
         streamService.finish(streamKey);
+
         return ApiResponse.<Void>builder()
                 .status(200)
                 .message("Your stream has been finished")

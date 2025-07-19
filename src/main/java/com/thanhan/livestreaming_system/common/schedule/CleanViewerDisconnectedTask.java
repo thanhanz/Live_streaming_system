@@ -16,30 +16,30 @@ public class CleanViewerDisconnectedTask {
     RedisTemplate<String, String> redisTemplate;
     SimpMessagingTemplate messagingTemplate;
 
-    @Scheduled(fixedRate = 10000) //10s
-    public void cleanDisconnect() {
+    @Scheduled(fixedRate = 30000) //30s
+    public void cleanDisconnect() { //In redis
         long now = System.currentTimeMillis();
-        Set<String> keys = redisTemplate.keys("viewer:*");
+        long validTime = 60000; //Neu' session nao khong hoat dong trong 60s se bi xoa'
+        Set<String> isLiveStream = redisTemplate.opsForSet().members("active_stream");
 
-        for (String key : keys) {
-            Map<Object, Object> streamEntries = redisTemplate.opsForHash().entries(key);
-            String getStreamId = key.replace("viewer:", "");
-            boolean changed = false;
+        if (isLiveStream != null && isLiveStream.size() > 0) { //Co nguoi dang live stream
+            for (String streamId : isLiveStream) {
+                String setSessionId = "live:viewer:" + streamId;
+                String zSetSessionScore = "live:viewer:score:" + streamId;
 
-            for (Map.Entry<Object, Object> entry : streamEntries.entrySet()) {
-                long timestamp = Long.parseLong(String.valueOf(entry.getValue()));
-                if (now - timestamp > 60000) { //60s
-                    redisTemplate.opsForHash().delete(key, entry.getKey());
-                    changed = true;
+
+                Set<String> expiredSessionIds = redisTemplate.opsForZSet()
+                        .rangeByScore(zSetSessionScore, 0, now - validTime);
+
+                if (expiredSessionIds != null && expiredSessionIds.size() > 0) {
+                    redisTemplate.opsForSet().remove(setSessionId, expiredSessionIds.toArray());
+                    redisTemplate.opsForZSet().remove(zSetSessionScore, expiredSessionIds.toArray());
                 }
-            }
 
-            if (changed) {
-                long count = redisTemplate.opsForHash().size(key);
-                messagingTemplate.convertAndSend("/topic/streams/" + getStreamId, Map.of("count", String.valueOf(count)));
+                Long viewerCount = redisTemplate.opsForSet().size("live:viewer:" + streamId);
+                messagingTemplate.convertAndSend("/topic/viewers/" + streamId, viewerCount);
             }
         }
-
     }
 
 }

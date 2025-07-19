@@ -13,6 +13,6 @@ public interface StreamService {
     Stream onPublish(StreamOnPublishRequest streamKey);
     boolean isValidStreamKey(String streamKey);
     void finish(String streamKey);
-    Stream getStreamById(String streamId);
+    StreamSessionResponse getStreamById(String streamId);
     List<StreamSessionResponse> getAllStreamsByChannelId(String channelId);
 }

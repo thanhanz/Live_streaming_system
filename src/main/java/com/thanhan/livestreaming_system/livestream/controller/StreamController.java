@@ -4,6 +4,7 @@ import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
@@ -37,8 +38,8 @@ public class StreamController {
     FFmpegService ffmpegService;
 
     @GetMapping("/{id}")
-    public ApiResponse<Stream> getStreamById(@PathVariable("id") String streamId) {
-        return ApiResponse.<Stream>builder()
+    public ApiResponse<StreamSessionResponse> getStreamById(@PathVariable("id") String streamId) {
+        return ApiResponse.<StreamSessionResponse>builder()
                 .status(201)
                 .data(streamService.getStreamById(streamId)).build();
     }

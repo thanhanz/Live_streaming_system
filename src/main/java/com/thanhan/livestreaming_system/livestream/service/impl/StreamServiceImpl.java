@@ -96,14 +96,19 @@ public class StreamServiceImpl implements StreamService {
     }
 
     @Override
-    public Stream getStreamById(String streamId) {
-        return streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
+    public StreamSessionResponse getStreamById(String streamId) {
+        Stream stream = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
+        Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+        return StreamMapper.toStreamResponse(stream, currentViewer);
     }
 
     @Override
     public List<StreamSessionResponse> getAllStreamsByChannelId(String channelId) {
 
         return streamRepository.findByChannelId(Long.valueOf(channelId))
-                .stream().map(StreamMapper::toStreamResponse).collect(Collectors.toList());
+                .stream().map((Stream stream) -> {
+                    Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+                    return StreamMapper.toStreamResponse(stream, currentViewer);
+                } ).collect(Collectors.toList());
     }
 }

@@ -9,5 +9,6 @@ public record StreamSessionResponse(
         String thumbnailUrl,
         String status,
         Instant createdAt,
-        Instant endedAt) {
+        Instant endedAt,
+        Integer currentViewer) {
 }

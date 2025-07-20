@@ -38,6 +38,7 @@ public class StreamController {
     FFmpegService ffmpegService;
 
     @GetMapping("/{id}")
+    @CrossOrigin(originPatterns = "http://localhost:3000")
     public ApiResponse<StreamSessionResponse> getStreamById(@PathVariable("id") String streamId) {
         return ApiResponse.<StreamSessionResponse>builder()
                 .status(201)

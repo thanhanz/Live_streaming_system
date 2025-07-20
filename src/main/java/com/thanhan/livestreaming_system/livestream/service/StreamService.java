@@ -14,5 +14,6 @@ public interface StreamService {
     boolean isValidStreamKey(String streamKey);
     void finish(String streamKey);
     StreamSessionResponse getStreamById(String streamId);
+    Stream getStreamByStreamId(String streamId);
     List<StreamSessionResponse> getAllStreamsByChannelId(String channelId);
 }

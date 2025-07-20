@@ -91,7 +91,10 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
 
-        redisTemplate.delete(StreamCacheKey.isWatchingKey(streamSession.getId().toString()));
+        redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
+        redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
+        redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
+        log.info("Removed from cache: " + streamSession.getId());
         streamRepository.save(streamSession);
     }
 
@@ -100,6 +103,11 @@ public class StreamServiceImpl implements StreamService {
         Stream stream = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
         Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
         return StreamMapper.toStreamResponse(stream, currentViewer);
+    }
+
+    @Override
+    public Stream getStreamByStreamId(String streamId) {
+        return streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
     }
 
     @Override

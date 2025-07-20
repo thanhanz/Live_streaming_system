@@ -36,7 +36,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         log.info("Save chat message with streamId: " + streamId);
 
         User u = userService.getUserByUsername(username);
-        Stream stream = streamService.getStreamById(streamId);
+        Stream stream = streamService.getStreamByStreamId(streamId);
 
         chatMessage.setSender(u);
         chatMessage.setStream(stream);

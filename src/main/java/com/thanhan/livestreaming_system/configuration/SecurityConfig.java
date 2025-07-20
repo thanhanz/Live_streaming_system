@@ -34,6 +34,7 @@ public class SecurityConfig {
                                                 "/users/register",
                                                 "/auth/refresh",
                                                 "/auth/logout",
+                                                "/api/streams/**" // Thêm endpoint streams
     };
 
     @Value("${jwt.signer-key}")
@@ -43,9 +44,10 @@ public class SecurityConfig {
     public SecurityFilterChain publicEndpoints(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
-                                        .requestMatchers(POST, PUBLIC_ENDPOINTS).permitAll()
-                                        .requestMatchers("/chat-websocket/**").permitAll()
+                                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                                        .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()
+
 
                                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->
@@ -101,6 +103,8 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/websocket/**", configuration);
+
         return source;
     }
 

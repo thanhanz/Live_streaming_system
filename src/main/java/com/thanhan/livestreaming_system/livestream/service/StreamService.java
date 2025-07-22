@@ -10,10 +10,11 @@ import java.util.List;
 
 public interface StreamService {
     StreamPrepareResponse prepare(StreamPrepareRequest request);
-    Stream onPublish(StreamOnPublishRequest streamKey);
     boolean isValidStreamKey(String streamKey);
     void finish(String streamKey);
     StreamSessionResponse getStreamById(String streamId);
     Stream getStreamByStreamId(String streamId);
     List<StreamSessionResponse> getAllStreamsByChannelId(String channelId);
+    Boolean isLiveStreaming(String streamKey);
+
 }

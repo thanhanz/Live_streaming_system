@@ -72,14 +72,6 @@ public class StreamServiceImpl implements StreamService {
 
 
     @Override
-    public Stream onPublish(StreamOnPublishRequest request) {
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-
-
-        return null;
-    }
-
-    @Override
     public void finish(String streamKey) {
         Stream streamSession = streamRepository.findByStreamKey(streamKey);
 
@@ -97,6 +89,41 @@ public class StreamServiceImpl implements StreamService {
         log.info("Removed from cache: " + streamSession.getId());
         streamRepository.save(streamSession);
     }
+
+//    private void downloadRecordLivestream(String streamKey) {
+//        String outputDir = "/var/www/html/hls/" + streamKey;
+//
+//        // Find latest MP4 file
+//        File dir = new File(outputDir);
+//        File[] mp4Files = dir.listFiles((d, name) -> name.endsWith(".mp4"));
+//
+//        if (mp4Files == null || mp4Files.length == 0) {
+//            return ResponseEntity.notFound().build();
+//        }
+//
+//        // Get latest file
+//        File latestFile = Arrays.stream(mp4Files)
+//                .max(Comparator.comparingLong(File::lastModified))
+//                .orElse(null);
+//
+//        if (latestFile == null) {
+//            return ResponseEntity.notFound().build();
+//        }
+//
+//        Resource resource = new FileSystemResource(latestFile);
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.CONTENT_DISPOSITION,
+//                        "attachment; filename=\"" + latestFile.getName() + "\"")
+//                .header(HttpHeaders.CONTENT_TYPE, "video/mp4")
+//                .body(resource);
+//
+//    } catch (Exception e) {
+//        log.error("Error downloading recording", e);
+//        return ResponseEntity.internalServerError().build();
+//    }
+//}
+//    }
 
     @Override
     public StreamSessionResponse getStreamById(String streamId) {
@@ -118,5 +145,11 @@ public class StreamServiceImpl implements StreamService {
                     Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
                     return StreamMapper.toStreamResponse(stream, currentViewer);
                 } ).collect(Collectors.toList());
+    }
+
+    @Override
+    public Boolean isLiveStreaming(String streamKey) {
+        Stream streamSession = streamRepository.findByStreamKey(streamKey);
+        return streamSession != null && streamSession.getStatus() == StreamStatus.STREAMING;
     }
 }

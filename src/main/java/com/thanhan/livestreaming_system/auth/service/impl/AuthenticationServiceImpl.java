@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -99,6 +100,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
+    @Transactional
     public AuthenticationResponse refreshToken(String refreshToken) throws JOSEException {
         RefreshToken oldToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new EntityNotFoundException("Refresh token not found"));

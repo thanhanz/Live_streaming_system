@@ -14,8 +14,10 @@ public class MainController {
         @GetMapping("/watch")
         public String viewStream(Model model, @RequestParam(name = "key") String streamKey) {
             model.addAttribute("streamKey", streamKey);
-            return "stream";
+            return "index"; //for hls
         }
     }
+
+
 
 }

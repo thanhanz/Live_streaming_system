@@ -34,7 +34,8 @@ public class SecurityConfig {
                                                 "/users/register",
                                                 "/auth/refresh",
                                                 "/auth/logout",
-                                                "/api/streams/**" // Thêm endpoint streams
+                                                "/api/stream/**",
+                                                "/watch" //Test in thymeleaf
     };
 
     @Value("${jwt.signer-key}")
@@ -47,7 +48,6 @@ public class SecurityConfig {
                                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()
-
 
                                         .anyRequest().authenticated());
         http.oauth2ResourceServer(oauth2 ->

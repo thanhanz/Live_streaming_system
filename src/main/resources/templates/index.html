@@ -27,11 +27,9 @@
     <video controls crossorigin playsinline >
         <source
                 type="application/x-mpegURL"
-                src="http://localhost:8082/hls/68e53830-fc3a-401f-b000-91f5458191b0/master.m3u8"
         >
     </video>
 </div>
-
 
 <script th:inline="javascript">
     const streamKey = /*[[${streamKey}]]*/ 'default-key';
@@ -43,6 +41,10 @@
         const video = document.querySelector("video");
         const source = video.getElementsByTagName("source")[0].src;
 
+        const streamSrc = video.querySelector("source");
+        streamSrc.src = videoSrc;
+        video.load();
+        // Cập nhật lại video sau khi đổi src
         // For more options see: https://github.com/sampotts/plyr/#options
         // captions.update is required for captions to work with hls.js
         const defaultOptions = {};

@@ -49,25 +49,28 @@ public class FFmpegServiceImpl implements FFmpegService {
 
                 // 360p
                 "-c:v:0", "libx264", "-preset", "veryfast", "-profile:v", "main", "-level", "3.0",
+                "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
                 "-b:v:0", "800k", "-maxrate:0", "1000k", "-bufsize:0", "1600k",
                 "-s:v:0", "640x360",
                 "-c:a:0", "aac", "-b:a:0", "96k", "-ac:0", "2",
 
                 // 720p
                 "-c:v:1", "libx264", "-preset", "veryfast", "-profile:v", "main", "-level", "3.1",
+                "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
                 "-b:v:1", "2500k", "-maxrate:1", "3000k", "-bufsize:1", "5000k",
                 "-s:v:1", "1280x720",
                 "-c:a:1", "aac", "-b:a:1", "128k", "-ac:1", "2",
 
                 // 1080p
                 "-c:v:2", "libx264", "-preset", "veryfast", "-profile:v", "high", "-level", "4.0",
+                "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
                 "-b:v:2", "5000k", "-maxrate:2", "6000k", "-bufsize:2", "10000k",
                 "-s:v:2", "1920x1080",
                 "-c:a:2", "aac", "-b:a:2", "160k", "-ac:2", "2",
 
                 "-f", "hls",
-                "-hls_time", "4",
-                "-hls_list_size", "10",
+                "-hls_time", "3",
+                "-hls_list_size", "6",
                 "-hls_flags", "delete_segments+independent_segments",
                 "-master_pl_name", "master.m3u8",
                 "-hls_segment_filename", segmentPattern,

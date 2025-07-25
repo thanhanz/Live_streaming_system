@@ -14,6 +14,7 @@ public class StreamMapper {
                 stream.getStatus().name(),
                 stream.getCreatedAt(),
                 stream.getEndedAt(),
+                stream.getStreamKey(),
                 currentViewer
         );
     }

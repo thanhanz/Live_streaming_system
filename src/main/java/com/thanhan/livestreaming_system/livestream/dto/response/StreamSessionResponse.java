@@ -10,5 +10,6 @@ public record StreamSessionResponse(
         String status,
         Instant createdAt,
         Instant endedAt,
+        String streamKey,
         Integer currentViewer) {
 }

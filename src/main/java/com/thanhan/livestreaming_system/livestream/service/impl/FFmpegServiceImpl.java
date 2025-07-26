@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,11 +33,17 @@ public class FFmpegServiceImpl implements FFmpegService {
 
         String hlsOutput = outputDir + "/%v/playlist.m3u8";
         String segmentPattern = outputDir + "/%v/segment_%03d.ts";
-
-        List<String> liveCommand = new ArrayList<>(List.of(
+        String record_livestream = outputDir + "/recording_%03d.mp4";
+        int recordingTime = 1800; //seconds = 30'
+        List<String> liveCommand = new ArrayList<> (List.of(
                 "ffmpeg",
                 "-i", inputUrl,
                 "-y",
+
+                "-c:v", "copy", "-c:a", "copy", "-f", "segment",
+                "-segment_time", String.valueOf(recordingTime),
+                "-segment_format", "mp4",
+                record_livestream,
 
                 "-filter_complex",
                 "[0:v]split=3[v360][v720][v1080];" +

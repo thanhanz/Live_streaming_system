@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -27,22 +28,32 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Objects;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/stream")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class StreamController {
 
     private static final Logger log = LoggerFactory.getLogger(StreamController.class);
-    StreamService streamService;
-    FFmpegService ffmpegService;
+    final StreamService streamService;
+    final FFmpegService ffmpegService;
+    final S3Client s3Client;
+
+    @Value("${cloudflare.r2.bucket}")
+    String R2Bucket;
 
     @GetMapping("/{id}")
     @CrossOrigin(originPatterns = "http://localhost:3000")
@@ -92,47 +103,86 @@ public class StreamController {
                 .build();
     }
 
-    @PostMapping("/record") //Should be path variable
-    public ApiResponse<Void> startRecording(@RequestParam("key") String key) {
+    @PostMapping("/upload") //Should be path variable
+    public ApiResponse<Void> uploadRecordVideo(@RequestParam("key") String key) {
         log.info("Start recording video from stream key: " + key);
         if (!streamService.isLiveStreaming(key)) {
             throw new RuntimeException("Reject: You are not live streaming");
         }
 
-        ffmpegService.startRecording(key);
+        streamService.uploadRecordLivestreamToR2(key);
+
         return ApiResponse.<Void>builder()
                 .status(200)
                 .message("You are recording a livestream")
                 .build();
     }
 
-    @PostMapping("/download") // -Path variable
+    @PostMapping("/download")
     public ResponseEntity<Resource> downloadRecordingLivestream(@RequestParam("key") String key) {
-        log.info("Start dowload record video from stream key: " + key);
+        log.info("Start download record video from stream key: " + key);
         try {
-            String outputDir = "/var/www/html/hls/" + key;
+            String r2StorageRecording = "recordings/" + key + "/";
 
-            File dir = new File(outputDir);
-            File[] mp4Files = dir.listFiles((d, name) -> name.endsWith(".mp4"));
+            ListObjectsV2Request request = ListObjectsV2Request.builder()
+                    .bucket(R2Bucket)
+                    .prefix(r2StorageRecording)
+                    .build();
 
-            if (mp4Files == null || mp4Files.length == 0) {
+            ListObjectsV2Response response = s3Client.listObjectsV2(request);
+
+            List<S3Object> allMp4Object = response.contents().stream()
+                    .filter(obj -> obj.key().endsWith(".mp4"))
+                    .collect(Collectors.toList());
+
+            if (allMp4Object.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
 
-            File latestFile = Arrays.stream(mp4Files)
-                    .max(Comparator.comparingLong(File::lastModified))
-                    .orElse(null);
+            File zipFile = File.createTempFile("recordings-" + key + "-", ".zip");
 
-            Resource resource = new FileSystemResource(latestFile);
+            try (FileOutputStream fos = new FileOutputStream(zipFile);
+                 ZipOutputStream zos = new ZipOutputStream(fos)) {
+
+                // Stream trực tiếp từ S3 vào ZIP
+                for (S3Object obj : allMp4Object) {
+                    String fileName = Paths.get(obj.key()).getFileName().toString();
+
+                    GetObjectRequest getRequest = GetObjectRequest.builder()
+                            .bucket(R2Bucket)
+                            .key(obj.key())
+                            .build();
+
+                    try (ResponseInputStream<GetObjectResponse> s3In = s3Client.getObject(getRequest)) {
+                        ZipEntry zipEntry = new ZipEntry(fileName);
+                        zos.putNextEntry(zipEntry);
+
+                        // Copy trực tiếp từ S3 stream vào ZIP
+                        byte[] buffer = new byte[8192]; // Buffer lớn hơn cho hiệu suất tốt hơn
+                        int length;
+                        while ((length = s3In.read(buffer)) > 0) {
+                            zos.write(buffer, 0, length);
+                        }
+
+                        zos.closeEntry();
+                        log.info("Added file to ZIP: " + fileName);
+                    }
+                }
+            }
+
+            Resource resource = new FileSystemResource(zipFile);
+            String zipFileName = "recordings-" + key + ".zip";
+            zipFile.deleteOnExit();
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + latestFile.getName() + "\"")
-                    .header(HttpHeaders.CONTENT_TYPE, "video/mp4")
+                            "attachment; filename=\"" + zipFileName + "\"")
+                    .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(zipFile.length()))
                     .body(resource);
 
         } catch (Exception e) {
-            log.error("Error downloading recording", e);
+            log.error("Error downloading and zipping recordings", e);
             return ResponseEntity.internalServerError().build();
         }
     }

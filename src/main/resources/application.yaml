@@ -45,3 +45,9 @@ logging:
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
 
+cloudflare:
+  r2:
+    endpoint: ${R2_ENDPOINT}
+    access-key: ${R2_ACCESSKEY}
+    secret-key: ${R2_SECRETKEY}
+    bucket: video-livestream

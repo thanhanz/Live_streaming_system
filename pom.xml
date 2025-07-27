@@ -102,6 +102,20 @@
 			<artifactId>spring-boot-devtools</artifactId>
 			<version>3.5.3</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/s3 -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.32.9</version>
+			<scope>compile</scope>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/apache-client -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>apache-client</artifactId>
+			<version>2.32.9</version>
+			<scope>compile</scope>
+		</dependency>
 
 	</dependencies>
 

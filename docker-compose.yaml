@@ -27,10 +27,11 @@ services:
       - live-stream-network
     ports:
       - "1935:1935"  #OBS phat RTMP
-      - "8082:81" #HTTP de xem HLS (index.m3u8) from OBS ->
+      - "8082:81" #HTTP de xem HLS (index.m3u8) from OBS
     volumes:
-      - ./hls:/var/www/html/hls
-      - ./dash:/var/www/html/dash
+      #- /d/SpringBootProject/LiveStreamingSystem/storage-video:/var/www/html/hls
+      - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
+
     depends_on:
       live-stream-website:
         condition: service_healthy
@@ -73,9 +74,11 @@ services:
       - DB_NAME=livestreaming_db
       - DB_USERNAME=postgres
       - DB_PASSWORD=1234
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_ACCESSKEY=${R2_ACCESSKEY}
+      - R2_SECRETKEY=${R2_SECRETKEY}
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
-      - ./dash:/var/www/html/dash   # Mount DASH directory để FFmpeg có thể ghi
 
 volumes:
   redis-data:

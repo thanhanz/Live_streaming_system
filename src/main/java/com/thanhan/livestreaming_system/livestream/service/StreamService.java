@@ -16,5 +16,5 @@ public interface StreamService {
     Stream getStreamByStreamId(String streamId);
     List<StreamSessionResponse> getAllStreamsByChannelId(String channelId);
     Boolean isLiveStreaming(String streamKey);
-
+    void uploadRecordLivestreamToR2(String streamKey);
 }

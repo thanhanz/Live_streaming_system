@@ -18,10 +18,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.io.File;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,12 +35,17 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class StreamServiceImpl implements StreamService {
 
-    StreamRepository streamRepository;
-    ChannelService channelService;
-    RedisTemplate<String, String> redisTemplate;
+    final StreamRepository streamRepository;
+    final ChannelService channelService;
+    final RedisTemplate<String, String> redisTemplate;
+    final S3Client s3Client;
+
+    @Value("${cloudflare.r2.bucket}")
+    String R2Bucket;
+
     @Override
     public StreamPrepareResponse prepare(StreamPrepareRequest request) {
         Channel channel = channelService.findById(request.channelId());
@@ -83,47 +94,52 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
 
+        //Upload record livestream to R2
+        uploadRecordLivestreamToR2(streamKey);
+
         redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
         redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
         redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
         log.info("Removed from cache: " + streamSession.getId());
+
         streamRepository.save(streamSession);
     }
 
-//    private void downloadRecordLivestream(String streamKey) {
-//        String outputDir = "/var/www/html/hls/" + streamKey;
-//
-//        // Find latest MP4 file
-//        File dir = new File(outputDir);
-//        File[] mp4Files = dir.listFiles((d, name) -> name.endsWith(".mp4"));
-//
-//        if (mp4Files == null || mp4Files.length == 0) {
-//            return ResponseEntity.notFound().build();
-//        }
-//
-//        // Get latest file
-//        File latestFile = Arrays.stream(mp4Files)
-//                .max(Comparator.comparingLong(File::lastModified))
-//                .orElse(null);
-//
-//        if (latestFile == null) {
-//            return ResponseEntity.notFound().build();
-//        }
-//
-//        Resource resource = new FileSystemResource(latestFile);
-//
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.CONTENT_DISPOSITION,
-//                        "attachment; filename=\"" + latestFile.getName() + "\"")
-//                .header(HttpHeaders.CONTENT_TYPE, "video/mp4")
-//                .body(resource);
-//
-//    } catch (Exception e) {
-//        log.error("Error downloading recording", e);
-//        return ResponseEntity.internalServerError().build();
-//    }
-//}
-//    }
+    @Override
+    public void uploadRecordLivestreamToR2(String streamKey) {
+        String storageRecordPath = "/var/www/html/hls/" + streamKey;
+        File folder = new File(storageRecordPath);
+
+
+        if (!folder.exists() || !folder.isDirectory()) {
+            throw new RuntimeException("Folder not found in: " + storageRecordPath);
+        }
+
+        File[] files = folder.listFiles((dir, name) -> name.matches("recording_\\d{3}\\.mp4"));
+
+        if (files == null || files.length == 0) {
+            throw new RuntimeException("No .mp4 recordings found for streamKey: " + streamKey);
+        }
+
+        Arrays.sort(files);
+        log.info("Found " + files.length + " recordings in: " + storageRecordPath);
+        for (File file : files) {
+            String key = "recordings/" + streamKey + "/" + file.getName();
+            try {
+                PutObjectRequest putRequest = PutObjectRequest.builder()
+                        .bucket(R2Bucket)
+                        .key(key)
+                        .contentType("video/mp4")
+                        .build();
+
+                s3Client.putObject(putRequest, RequestBody.fromFile(file.toPath()));
+                log.info("Uploaded: {}", file.getName());
+
+            } catch (Exception e) {
+                log.error("Failed to upload file: {}", file.getName(), e);
+            }
+        }
+    }
 
     @Override
     public StreamSessionResponse getStreamById(String streamId) {

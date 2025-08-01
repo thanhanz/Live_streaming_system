@@ -21,11 +21,15 @@ spring:
   devtools:
     livereload:
       enabled: false
-  #Config thymeleaf
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
-    enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: guest
+    password: guest
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 server:
   port: 8081
@@ -51,3 +55,9 @@ cloudflare:
     access-key: ${R2_ACCESSKEY}
     secret-key: ${R2_SECRETKEY}
     bucket: video-livestream
+
+rabbitmq:
+  transcode:
+    exchange: "video.transcode.exchange"
+    routing-key: "video.transcode"
+    queue: "video.transcode.queue"

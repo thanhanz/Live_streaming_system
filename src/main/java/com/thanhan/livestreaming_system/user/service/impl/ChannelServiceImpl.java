@@ -106,11 +106,7 @@ public class ChannelServiceImpl implements ChannelService {
             redisTemplate.delete(countFollowerKey);
     }
 
-    @Override
-    @Transactional
-    public String generateStreamKey() {
-        return "";
-    }
+
 
     @Override
     public Channel findById(Long channelId) {

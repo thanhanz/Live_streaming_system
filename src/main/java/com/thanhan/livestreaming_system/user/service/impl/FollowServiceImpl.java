@@ -34,6 +34,7 @@ public class FollowServiceImpl implements FollowService {
     RedisTemplate<String, Long> redisTemplate;
 
     @Override
+    @Transactional
     public void follow(String userId, String channelId) {
         User user = userRepository.findById(UUID.fromString(userId)).orElseThrow(
                 () -> new AppException(ErrorCode.USER_NOT_EXIST));
@@ -51,7 +52,10 @@ public class FollowServiceImpl implements FollowService {
         follow.setChannel(channel);
         follow.setFollowedAt(Instant.now());
 
+        channel.setFollowersCount(channel.getFollowersCount() + 1);
+
         this.followRepository.save(follow);
+        this.channelRepository.save(channel);
 
         incrementFollowerCount(channelId);
     }
@@ -70,7 +74,11 @@ public class FollowServiceImpl implements FollowService {
             if (!checkFollowed)
                 throw new IllegalArgumentException("User isn't follow this channel");
 
+            channel.setFollowersCount(channel.getFollowersCount() - 1);
+
             this.followRepository.deleteByFollowerAndChannel(user, channel);
+            this.channelRepository.save(channel);
+
             decrementFollowerCount(channelId);
 
         } catch (Exception e) {
@@ -81,7 +89,6 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     public boolean isFollowing(String userId, String channelId) {
-
         User user = userRepository.findById(UUID.fromString(userId)).orElseThrow(
                 () -> new AppException(ErrorCode.USER_NOT_EXIST));
         Channel channel = channelRepository.findById(Long.valueOf(channelId))

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -29,6 +30,6 @@ public class Follow {
     @ManyToOne(fetch = FetchType.LAZY)
     private Channel channel;
 
+    @CreatedDate
     private Instant followedAt;
-
 }

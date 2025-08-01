@@ -6,7 +6,5 @@ public record ChannelCreationRequest(
         String displayName,
         String description,
         @Nullable String avatar,
-        @Nullable String bannerUrl,
-        String streamKey //Cai nay se duoc tu dong generate
-) {
+        @Nullable String bannerUrl) {
 }

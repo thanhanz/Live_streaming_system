@@ -29,7 +29,7 @@ public class ChannelMapper {
         channel.setDisplayName(request.displayName());
         channel.setCreatedAt(Instant.now());
         channel.setUpdatedAt(Instant.now());
-        channel.setStreamKey(request.streamKey());
+
 
         return channel;
     }

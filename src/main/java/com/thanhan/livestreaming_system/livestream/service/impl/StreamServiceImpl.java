@@ -110,7 +110,6 @@ public class StreamServiceImpl implements StreamService {
         String storageRecordPath = "/var/www/html/hls/" + streamKey;
         File folder = new File(storageRecordPath);
 
-
         if (!folder.exists() || !folder.isDirectory()) {
             throw new RuntimeException("Folder not found in: " + storageRecordPath);
         }

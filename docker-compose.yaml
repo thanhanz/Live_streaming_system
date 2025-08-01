@@ -1,4 +1,5 @@
 services:
+  #Database
   postgres:
     image: postgres:17
     container_name: live-stream-postgres
@@ -19,6 +20,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
 
+  #Hosting live stream
   rtmp:
     build: ./nginx-rtmp
     image: tiangolo/nginx-rtmp
@@ -31,11 +33,26 @@ services:
     volumes:
       #- /d/SpringBootProject/LiveStreamingSystem/storage-video:/var/www/html/hls
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
-
     depends_on:
       live-stream-website:
         condition: service_healthy
 
+  #Transcode worker
+#  ffmpeg:
+#    image: jrottenberg/ffmpeg:latest
+#    container_name: ffmpeg
+
+  #Queue
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" #Port connect to Spring
+      - "15672:15672" #Port admin manage localhost:15672
+    networks:
+      - live-stream-network
+
+  #Cache
   redis:
     image: redis:latest
     container_name: redis
@@ -47,6 +64,7 @@ services:
       - live-stream-network
     restart: always
 
+  #Backend
   live-stream-website:
     container_name: live-stream-be
     build:
@@ -77,6 +95,7 @@ services:
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_ACCESSKEY=${R2_ACCESSKEY}
       - R2_SECRETKEY=${R2_SECRETKEY}
+      - RABBITMQ_HOST=rabbitmq
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
 

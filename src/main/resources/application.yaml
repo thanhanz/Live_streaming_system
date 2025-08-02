@@ -55,6 +55,7 @@ cloudflare:
     access-key: ${R2_ACCESSKEY}
     secret-key: ${R2_SECRETKEY}
     bucket: video-livestream
+    public-url-id: ${R2_PUBLIC_URL}
 
 rabbitmq:
   transcode:

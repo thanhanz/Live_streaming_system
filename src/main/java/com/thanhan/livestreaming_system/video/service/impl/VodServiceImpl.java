@@ -12,6 +12,7 @@ import com.thanhan.livestreaming_system.video.entity.Vod;
 import com.thanhan.livestreaming_system.video.messaging.producer.VideoUploadProducer;
 import com.thanhan.livestreaming_system.video.repository.VodRepository;
 import com.thanhan.livestreaming_system.video.service.VodService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -119,5 +121,14 @@ public class VodServiceImpl implements VodService {
         Vod updatedVod = vodRepository.save(vod);
 
         return VodMapper.toVodResponse(updatedVod);
+    }
+
+    @Override
+    @Transactional
+    public Vod updateVodUrl(String url, Long id) {
+        Vod vod = vodRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Video not found"));
+        vod.setVideoUrl(url);
+        return vodRepository.save(vod);
+
     }
 }

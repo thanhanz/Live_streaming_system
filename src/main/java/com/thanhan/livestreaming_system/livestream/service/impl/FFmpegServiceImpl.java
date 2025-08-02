@@ -2,6 +2,8 @@ package com.thanhan.livestreaming_system.livestream.service.impl;
 
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.video.dto.VodTranscodeRequest;
+import com.thanhan.livestreaming_system.video.entity.Vod;
+import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
@@ -34,6 +36,7 @@ import java.util.stream.Stream;
 public class FFmpegServiceImpl implements FFmpegService {
 
     private final S3Client s3Client;
+    private final VodService vodService;
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
@@ -47,8 +50,13 @@ public class FFmpegServiceImpl implements FFmpegService {
     @Value("${cloudflare.r2.endpoint}")
     private String r2EndpointUrl;
 
+    @Value("${cloudflare.r2.public-url-id}")
+    private String publicR2Id;
 
-
+    /*
+        Thay = ten domain chu khong nen su dung Id nay`
+     */
+    private String PUBLIC_R2_URL = "https://" + publicR2Id + ".r2.dev/";
 
     @Override
     @Async
@@ -154,10 +162,11 @@ public class FFmpegServiceImpl implements FFmpegService {
                         "-i", tmpMp4File.getAbsolutePath(),
 
                         "-filter_complex",
-                        "[0:v]split=3[v360][v720][v1080];" +
+//                        "[0:v]split=3[v360][v720][v1080];" +
+                        "[0:v]split=2[v360][v720];" +
                                 "[v360]scale=w=640:h=360:force_original_aspect_ratio=decrease[v360out];" +
-                                "[v720]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v720out];" +
-                                "[v1080]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080out]",
+                                "[v720]scale=w=1280:h=720:force_original_aspect_ratio=decrease[v720out]",
+//                                "[v1080]scale=w=1920:h=1080:force_original_aspect_ratio=decrease[v1080out]",
 
                         // 360p
                         "-map", "[v360out]", "-map", "0:a",
@@ -174,11 +183,11 @@ public class FFmpegServiceImpl implements FFmpegService {
                         "-c:a:1", "aac", "-ar:1", "48000", "-b:a:1", "128k",
 
                         // Output 1080p
-                        "-map", "[v1080out]", "-map", "0:a",
-                        "-c:v:2", "libx264", "-profile:v:2", "main", "-crf:2", "20", "-sc_threshold:2", "0",
-                        "-g:2", "48", "-keyint_min:2", "48",
-                        "-b:v:2", "5000k", "-maxrate:2", "5350k", "-bufsize:2", "7500k",
-                        "-c:a:2", "aac", "-ar:2", "48000", "-b:a:2", "192k",
+//                        "-map", "[v1080out]", "-map", "0:a",
+//                        "-c:v:2", "libx264", "-profile:v:2", "main", "-crf:2", "20", "-sc_threshold:2", "0",
+//                        "-g:2", "48", "-keyint_min:2", "48",
+//                        "-b:v:2", "5000k", "-maxrate:2", "5350k", "-bufsize:2", "7500k",
+//                        "-c:a:2", "aac", "-ar:2", "48000", "-b:a:2", "192k",
 
                         // HLS Muxer Options
                         "-f", "hls",
@@ -187,7 +196,8 @@ public class FFmpegServiceImpl implements FFmpegService {
                         "-hls_flags", "independent_segments",
                         "-hls_segment_filename", segmentPattern,
                         "-master_pl_name", "master.m3u8",
-                        "-var_stream_map", "v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p",
+                        "-var_stream_map", "v:0,a:0,name:360p v:1,a:1,name:720p ",
+//                                "v:2,a:2,name:1080p",
                         hlsOutput
                 ));
 
@@ -215,7 +225,12 @@ public class FFmpegServiceImpl implements FFmpegService {
                      */
                     uploadHLSToR2(request.vodId(), parentDir);
 
-                    log.info("Finished upload HLS file to R2");
+                    Long vodId = request.vodId();
+                    String m3u8UrlInR2 = PUBLIC_R2_URL + "hls/" + vodId.toString() + "/master.m3u8";
+
+                    Vod transcodedVod = vodService.updateVodUrl(m3u8UrlInR2, vodId);
+
+                    log.info("Finished upload HLS file to R2 and public url: ", transcodedVod.getVideoUrl());
 
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException("Failed to transcode to HLS and upload to R2 using FFmpeg: ", e);
@@ -223,7 +238,8 @@ public class FFmpegServiceImpl implements FFmpegService {
 
             } catch (Exception e) {
                 log.error("Failed in process transcode by FFmpeg command and upload to R2: ", e);
-            } finally {
+            }
+            finally {
                 String localFilePath = "/tmp/vod_" + request.vodId();
                 cleanTempVod(localFilePath);
             }
@@ -259,37 +275,41 @@ public class FFmpegServiceImpl implements FFmpegService {
             }
         }
 
+
     private void uploadHLSToR2(Long vodId, File hlsOutput) throws IOException {
         String baseKey = "hls/" + vodId + "/";
+        log.info("Start upload file from {}  to R2!", hlsOutput.toPath());
 
         try (Stream<Path> paths = Files.walk(hlsOutput.toPath())) {
             paths.filter(Files::isRegularFile)
                     .forEach(path -> {
                         String relativePath = hlsOutput.toPath().relativize(path).toString();
-                        String key = baseKey + relativePath;
-
-                        try {
-                            String contentType = Files.probeContentType(path);
-                            if (contentType == null) {
-                                if (relativePath.endsWith(".m3u8")) {
-                                    contentType = "application/vnd.apple.mpegurl";
-                                } else if (relativePath.endsWith(".ts")) {
-                                    contentType = "video/MP2T";
+                        if (!relativePath.endsWith(".mp4")) {
+                            String key = baseKey + relativePath;
+                            log.info("Upload file to R2: {}", key);
+                            try {
+                                String contentType = Files.probeContentType(path);
+                                if (contentType == null) {
+                                    if (relativePath.endsWith(".m3u8")) {
+                                        contentType = "application/vnd.apple.mpegurl";
+                                    } else if (relativePath.endsWith(".ts")) {
+                                        contentType = "video/MP2T";
+                                    }
                                 }
+
+                                log.debug("Uploading file '{}' to R2 key '{}' with Content-Type '{}'", path, key, contentType);
+
+                                PutObjectRequest putRequest = PutObjectRequest.builder()
+                                        .bucket(R2Bucket)
+                                        .key(key)
+                                        .contentType(contentType)
+                                        .build();
+
+                                s3Client.putObject(putRequest, RequestBody.fromFile(path.toFile()));
+                            } catch (Exception e) {
+                                log.error("Failed to upload file {} to R2", path, e);
+                                throw new RuntimeException("Upload failed", e);
                             }
-
-                            log.debug("Uploading file '{}' to R2 key '{}' with Content-Type '{}'", path, key, contentType);
-
-                            PutObjectRequest putRequest = PutObjectRequest.builder()
-                                    .bucket(R2Bucket)
-                                    .key(key)
-                                    .contentType(contentType)
-                                    .build();
-
-                            s3Client.putObject(putRequest, RequestBody.fromFile(path.toFile()));
-                        } catch (Exception e) {
-                            log.error("Failed to upload file {} to R2", path, e);
-                            throw new RuntimeException("Upload failed", e);
                         }
                     });
         }

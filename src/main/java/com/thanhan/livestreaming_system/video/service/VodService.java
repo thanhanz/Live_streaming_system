@@ -15,5 +15,7 @@ public interface VodService {
     void deleteVod(Long id);
     VodResponse getVodById(Long id);
     VodResponse updateVod(Long id, VodUpdationRequest request);
+    Vod updateVodUrl(String url, Long id);
+
 
 }

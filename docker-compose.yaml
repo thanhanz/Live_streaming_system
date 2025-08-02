@@ -95,6 +95,7 @@ services:
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_ACCESSKEY=${R2_ACCESSKEY}
       - R2_SECRETKEY=${R2_SECRETKEY}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
       - RABBITMQ_HOST=rabbitmq
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi

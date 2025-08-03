@@ -2,6 +2,7 @@ package com.thanhan.livestreaming_system.video.service.impl;
 
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
+import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
@@ -18,6 +19,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,10 +49,23 @@ public class VodServiceImpl implements VodService {
     private String R2Bucket;
 
     @Override
-    public List<VodResponse> getVodsByChannelId(Long channelId) {
-        List<Vod> vods = vodRepository.findByChannelId(channelId);
+    public PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
+        Sort.Direction direction = Sort.Direction.fromOptionalString(request.getOrder()).orElse(Sort.Direction.DESC);
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
 
-        return vods.stream().map(VodMapper::toVodResponse).collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getLimit(), Sort.by(direction, sortBy));
+
+        Page<Vod> pageResult = vodRepository.getPaginationByChannelId(channelId, pageable);
+
+        List<VodResponse> items = pageResult.getContent().stream().map(VodMapper::toVodResponse).collect(Collectors.toList());
+
+        return PaginationResponse.<VodResponse>builder()
+                .page(pageResult.getNumber() + 1)
+                .limit(pageResult.getSize())
+                .totalItems((int) pageResult.getTotalElements())
+                .totalPage(pageResult.getTotalPages())
+                .items(items)
+                .build();
     }
 
     @Override
@@ -129,6 +147,13 @@ public class VodServiceImpl implements VodService {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Video not found"));
         vod.setVideoUrl(url);
         return vodRepository.save(vod);
-
     }
+
+    @Override
+    public VodResponse hideVod(Long vodId) {
+        Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
+        vod.setOnlyMember(false);
+        return VodMapper.toVodResponse(vodRepository.save(vod));
+    }
+
 }

@@ -12,7 +12,7 @@ public interface ChannelService {
     ChannelResponse update(ChannelUpdateRequest request);
     void delete(String channelId);
     ChannelResponse getChannelById(String id);
-    ChannelResponse getChannelByOwnerId(String ownerId);
+    Channel getChannelByOwnerId(String ownerId);
     Long countFollower(Long channelId);
     Channel findById(Long channelId);
 }

@@ -56,4 +56,16 @@ public class GlobalExceptionHandler {
                 .message(errorCode.getMessage()).
                 build());
     }
+
+    @ExceptionHandler(value = VnpPaymentException.class)
+    ResponseEntity<ApiResponse> handleVnpPaymentException(VnpPaymentException ex) {
+
+        VnpErrorCode errorCode = ex.getVnpErrorCode();
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.builder()
+                .status(errorCode.getCode())
+                .message(errorCode.getMessage()).
+                build());
+    }
 }

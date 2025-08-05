@@ -8,5 +8,5 @@ import com.thanhan.livestreaming_system.user.entity.User;
 public interface UserService {
     UserResponse register(UserCreationRequest request);
     User getUserByUsername(String username);
-
+    User getUserById(String id);
 }

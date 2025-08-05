@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -50,5 +52,11 @@ public class UserServiceImpl implements UserService {
     public User getUserByUsername(String username) {
           return userRepository.findByUsername(username).orElseThrow(() ->
                     new AppException(ErrorCode.USER_NOT_EXIST));
+    }
+
+    @Override
+    public User getUserById(String id) {
+        return userRepository.findById(UUID.fromString(id)).orElseThrow(() ->
+                new AppException(ErrorCode.USER_NOT_EXIST));
     }
 }

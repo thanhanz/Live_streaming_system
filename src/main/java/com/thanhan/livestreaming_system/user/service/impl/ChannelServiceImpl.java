@@ -80,8 +80,8 @@ public class ChannelServiceImpl implements ChannelService {
     }
 
     @Override
-    public ChannelResponse getChannelByOwnerId(String ownerId) {
-        return null;
+    public Channel getChannelByOwnerId(String ownerId) {
+        return channelRepository.getChannelByOwnerId(UUID.fromString(ownerId));
     }
 
     @Override

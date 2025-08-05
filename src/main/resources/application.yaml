@@ -62,3 +62,11 @@ rabbitmq:
     exchange: "video.transcode.exchange"
     routing-key: "video.transcode"
     queue: "video.transcode.queue"
+
+vnpay:
+  tmn-code: ${VNP_TMNCODE}
+  secret-key: ${VNP_SECRET_KEY}
+  version: 2.1.0
+  command: pay
+  otherType: other
+  return-url:  https://magical-minnow-openly.ngrok-free.app/livestream/api/payment/payment_callback

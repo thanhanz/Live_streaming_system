@@ -1,4 +1,4 @@
-package com.thanhan.livestreaming_system.configuration;
+package com.thanhan.livestreaming_system.chat.configuration;
 
 
 import lombok.AccessLevel;

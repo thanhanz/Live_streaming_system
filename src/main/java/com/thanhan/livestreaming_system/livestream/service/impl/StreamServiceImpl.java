@@ -100,6 +100,8 @@ public class StreamServiceImpl implements StreamService {
         redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
         redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
         redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
+        redisTemplate.opsForSet().remove("chat:banned:" + streamSession.getId());
+
         log.info("Removed from cache: " + streamSession.getId());
 
         streamRepository.save(streamSession);

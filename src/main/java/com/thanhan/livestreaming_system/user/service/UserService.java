@@ -9,4 +9,5 @@ public interface UserService {
     UserResponse register(UserCreationRequest request);
     User getUserByUsername(String username);
     User getUserById(String id);
+    String getUserIdByUsername(String username);
 }

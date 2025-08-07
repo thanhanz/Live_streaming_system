@@ -20,6 +20,7 @@ public enum ErrorCode {
     UNAUTHENTICATED(4001, "Unauthenticated"),
     REVOKED_TOKEN(4003, "Revoked or expired token"),
     FORBIDDEN(403, "You do not have permission to access this resource"),
+    USER_BANNED_CHAT(404, "You have banned this chat"),
     ;
 
     int code;

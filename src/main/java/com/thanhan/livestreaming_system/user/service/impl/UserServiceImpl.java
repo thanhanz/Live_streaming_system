@@ -59,4 +59,11 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(UUID.fromString(id)).orElseThrow(() ->
                 new AppException(ErrorCode.USER_NOT_EXIST));
     }
+
+    @Override
+    public String getUserIdByUsername(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow(() ->
+                new AppException(ErrorCode.USER_NOT_EXIST));
+        return user.getId().toString();
+    }
 }

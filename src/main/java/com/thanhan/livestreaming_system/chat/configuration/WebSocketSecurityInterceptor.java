@@ -1,16 +1,9 @@
-package com.thanhan.livestreaming_system.configuration;
+package com.thanhan.livestreaming_system.chat.configuration;
 
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.SignedJWT;
-import com.thanhan.livestreaming_system.auth.dto.request.IntrospectRequest;
-import com.thanhan.livestreaming_system.auth.service.AuthenticationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -25,8 +18,6 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Slf4j

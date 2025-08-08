@@ -51,8 +51,8 @@ public class FollowServiceImpl implements FollowService {
         follow.setFollower(user);
         follow.setChannel(channel);
         follow.setFollowedAt(Instant.now());
-
-        channel.setFollowersCount(channel.getFollowersCount() + 1);
+        int totalFollower = channel.getFollowersCount() != null ? channel.getFollowersCount() : 0;
+        channel.setFollowersCount(totalFollower + 1);
 
         this.followRepository.save(follow);
         this.channelRepository.save(channel);

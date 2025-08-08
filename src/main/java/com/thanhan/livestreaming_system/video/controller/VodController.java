@@ -3,6 +3,7 @@ import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.video.dto.*;
+import com.thanhan.livestreaming_system.video.entity.Vod;
 import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +22,8 @@ public class VodController {
     VodService vodService;
 
     @PostMapping("/upload")
-    public ApiResponse<VodResponse> upload(@RequestParam("video") MultipartFile file, VodCreationRequest request) throws AppException {
-        return ApiResponse.<VodResponse>builder()
+    public ApiResponse<Vod> upload(@RequestParam("video") MultipartFile file, VodCreationRequest request) throws AppException {
+        return ApiResponse.<Vod>builder()
                 .status(200)
                 .data(vodService.uploadVod(request, file))
                 .message("Upload video success!")
@@ -42,8 +43,8 @@ public class VodController {
         Paginate
      */
     @GetMapping("/channels/{channelId}")
-    public ApiResponse<PaginationResponse<VodResponse>> getVodsByChannelId(@PathVariable(name = "channelId") Long channelId, @RequestBody(required = false) VodGetRequest request) throws AppException  {
-        return ApiResponse.<PaginationResponse<VodResponse>>builder()
+    public ApiResponse<PaginationResponse<Vod>> getVodsByChannelId(@PathVariable(name = "channelId") Long channelId, @RequestBody(required = false) VodGetRequest request) throws AppException  {
+        return ApiResponse.<PaginationResponse<Vod>>builder()
                 .message("Get paginated vod")
                 .data(vodService.getAllVodsByChannelId(channelId, request))
                 .build();

@@ -14,6 +14,7 @@ import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,9 +53,10 @@ public class StreamServiceImpl implements StreamService {
 
         Stream streamSession = new Stream();
         streamSession.setChannel(channel);
-        streamSession.setTitle(channel.getOwner().getLastName() + "'s Live Stream!");
-        streamSession.setDescription("Test Live Stream!");
+        streamSession.setTitle(request.title());
+        streamSession.setDescription(request.description());
         streamSession.setStatus(StreamStatus.PREPARING);
+        streamSession.setCreatedAt(Instant.now());
 
         String generateStreamKey = UUID.randomUUID().toString();
         String rtmpUrl = "rtmp://localhost:1935/live/";
@@ -143,10 +145,17 @@ public class StreamServiceImpl implements StreamService {
     }
 
     @Override
+    @Transactional
     public StreamSessionResponse getStreamById(String streamId) {
         Stream stream = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
+
+        if (stream.getStatus() != StreamStatus.STREAMING) {
+            throw new RuntimeException("Stream is not publish: " + streamId);
+        }
+
         Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
-        return StreamMapper.toStreamResponse(stream, currentViewer);
+        Long totalFollowers = channelService.countFollower(stream.getChannel().getId());
+        return StreamMapper.toStreamResponse(stream, currentViewer, totalFollowers);
     }
 
     @Override
@@ -154,15 +163,14 @@ public class StreamServiceImpl implements StreamService {
         return streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
     }
 
-    @Override
-    public List<StreamSessionResponse> getAllStreamsByChannelId(String channelId) {
-
-        return streamRepository.findByChannelId(Long.valueOf(channelId))
-                .stream().map((Stream stream) -> {
-                    Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
-                    return StreamMapper.toStreamResponse(stream, currentViewer);
-                } ).collect(Collectors.toList());
-    }
+//    @Override
+//    public List<StreamSessionResponse> getAllStreamsByChannelId(String channelId) {
+//        return streamRepository.findByChannelId(Long.valueOf(channelId))
+//                .stream().map((Stream stream) -> {
+//                    Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+//                    return StreamMapper.toStreamResponse(stream, currentViewer);
+//                } ).collect(Collectors.toList());
+//    }
 
     @Override
     public Boolean isLiveStreaming(String streamKey) {

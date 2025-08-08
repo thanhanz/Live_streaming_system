@@ -6,6 +6,7 @@ import com.thanhan.livestreaming_system.user.dto.request.ChannelUpdateRequest;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
+import com.thanhan.livestreaming_system.user.service.FollowService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

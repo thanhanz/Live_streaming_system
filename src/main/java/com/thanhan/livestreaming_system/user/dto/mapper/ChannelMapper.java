@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.user.dto.mapper;
 
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
@@ -19,6 +20,17 @@ public class ChannelMapper {
                 channel.getCreatedAt()
         );
     }
+
+    public static ChannelCacheResponse toChannelCacheResponse(Channel channel, Long totalFollowers) {
+        return new ChannelCacheResponse(
+                channel.getId().toString(),
+                channel.getDisplayName(),
+                channel.getAvatarUrl(),
+                totalFollowers
+        );
+    }
+
+
 
     public static Channel toChannel(ChannelCreationRequest request, User owner) {
         Channel channel = new Channel();

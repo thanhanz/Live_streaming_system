@@ -47,7 +47,7 @@ public class Stream {
 
 
     @Column(name = "created_at")
-    @CreationTimestamp
+    @CreatedDate
     private Instant createdAt;
 
 

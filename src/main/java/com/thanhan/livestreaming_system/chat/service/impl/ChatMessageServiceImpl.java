@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -57,13 +58,24 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     }
 
     @Override
+    @Transactional
     public void banUser(String streamId, BanChatRequest request) {
+
+        if (!isOwnerOfStream(request.userId(), streamId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
         String listBannedUserKey = ChatUtils.bannedChatKey(streamId);
         redisTemplate.opsForHash().put(listBannedUserKey, request.userId(), request.username());
     }
 
     @Override
-    public Map<String, String> getBannedUsers(String streamId) {
+    @Transactional
+    public Map<String, String> getBannedUsers(String userId, String streamId) {
+        if (!isOwnerOfStream(userId, streamId)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
         String listBannedUserKey = ChatUtils.bannedChatKey(streamId);
 
         if (!redisTemplate.hasKey(listBannedUserKey)) {
@@ -84,4 +96,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         String listBannedUserKey = ChatUtils.bannedChatKey(streamId);
         return redisTemplate.opsForHash().hasKey(listBannedUserKey, userId);
     }
+
+    private boolean isOwnerOfStream(String userId, String streamId) {
+        Stream stream = streamService.getStreamByStreamId(streamId);
+        return userId.equals(stream.getChannel().getOwner().getId());
+    }
+
 }

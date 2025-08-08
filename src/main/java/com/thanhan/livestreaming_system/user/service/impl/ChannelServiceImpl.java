@@ -93,7 +93,6 @@ public class ChannelServiceImpl implements ChannelService {
             redisTemplate.opsForValue().set(countFollowerKey, count);
             return count;
         }
-
         return redisTemplate.opsForValue().get(countFollowerKey);
     }
 

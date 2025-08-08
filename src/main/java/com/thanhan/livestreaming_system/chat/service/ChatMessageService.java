@@ -10,6 +10,6 @@ public interface ChatMessageService {
 
     MessageResponse saveMessage(ChatMessage chatMessage, String streamId, String username);
     void banUser(String streamId, BanChatRequest request);
-    Map<String, String> getBannedUsers(String streamId);
+    Map<String, String> getBannedUsers(String userId, String streamId);
     Boolean checkIsBanned(String streamId, String userId);
 }

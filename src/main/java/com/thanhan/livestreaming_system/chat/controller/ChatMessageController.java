@@ -6,6 +6,7 @@ import com.thanhan.livestreaming_system.chat.dto.MessageResponse;
 import com.thanhan.livestreaming_system.chat.entity.ChatMessage;
 import com.thanhan.livestreaming_system.chat.service.ChatMessageService;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
+import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -58,12 +59,13 @@ public class ChatMessageController  {
                 .build();
     }
 
-
     @GetMapping("/stream/{streamId}/chat/banned_list")
     @ResponseBody
-    public ApiResponse<Map<String, String>> getBannedUsers(@PathVariable String streamId) {
-        Map<String, String> result = chatMessageService.getBannedUsers(streamId);
+    public ApiResponse<Map<String, String>> getBannedUsers(@PathVariable String streamId, Principal principal) {
+        String username = principal.getName();
+        String userId = userService.getUserIdByUsername(username);
 
+        Map<String, String> result = chatMessageService.getBannedUsers(userId, streamId);
         return ApiResponse.<Map<String, String>>builder()
                 .data(result)
                 .message("Get list user banned in stream: " + streamId)

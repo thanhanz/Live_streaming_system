@@ -4,6 +4,8 @@ import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
+import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
@@ -31,6 +33,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,7 +52,7 @@ public class VodServiceImpl implements VodService {
     private String R2Bucket;
 
     @Override
-    public PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
+    public PaginationResponse<Vod> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
         Sort.Direction direction = Sort.Direction.fromOptionalString(request.getOrder()).orElse(Sort.Direction.DESC);
         String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
 
@@ -57,9 +60,9 @@ public class VodServiceImpl implements VodService {
 
         Page<Vod> pageResult = vodRepository.getPaginationByChannelId(channelId, pageable);
 
-        List<VodResponse> items = pageResult.getContent().stream().map(VodMapper::toVodResponse).collect(Collectors.toList());
+        List<Vod> items = new ArrayList<>(pageResult.getContent());
 
-        return PaginationResponse.<VodResponse>builder()
+        return PaginationResponse.<Vod>builder()
                 .page(pageResult.getNumber() + 1)
                 .limit(pageResult.getSize())
                 .totalItems((int) pageResult.getTotalElements())
@@ -69,7 +72,7 @@ public class VodServiceImpl implements VodService {
     }
 
     @Override
-    public VodResponse uploadVod(VodCreationRequest request, MultipartFile vodMp4) {
+    public Vod uploadVod(VodCreationRequest request, MultipartFile vodMp4) {
         Channel channel = channelService.findById(request.channelId());
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User authUser = userService.getUserByUsername(username);
@@ -93,7 +96,7 @@ public class VodServiceImpl implements VodService {
         videoUploadProducer.sendMessage(new VodTranscodeRequest(vod.getId(), rawStorage));
         log.info("Send message to transcode service: ", rawStorage);
 
-        return VodMapper.toVodResponse(savedVod);
+        return savedVod;
     }
 
     private String uploadVideoToR2(Long vodId, MultipartFile vodMp4) {
@@ -124,7 +127,9 @@ public class VodServiceImpl implements VodService {
     @Override
     public VodResponse getVodById(Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
-        return VodMapper.toVodResponse(vod);
+        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
+
+        return VodMapper.toVodResponse(vod, response);
     }
 
     @Override
@@ -138,7 +143,9 @@ public class VodServiceImpl implements VodService {
 
         Vod updatedVod = vodRepository.save(vod);
 
-        return VodMapper.toVodResponse(updatedVod);
+        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
+
+        return VodMapper.toVodResponse(updatedVod, response);
     }
 
     @Override
@@ -153,7 +160,13 @@ public class VodServiceImpl implements VodService {
     public VodResponse hideVod(Long vodId) {
         Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
         vod.setOnlyMember(false);
-        return VodMapper.toVodResponse(vodRepository.save(vod));
+        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
+        return VodMapper.toVodResponse(vodRepository.save(vod), response);
+    }
+
+    private ChannelCacheResponse getChannelCache(Vod vod, Long channelId) {
+        Long totalFollowers = channelService.countFollower(vod.getChannel().getId());
+        return ChannelMapper.toChannelCacheResponse(vod.getChannel(), totalFollowers);
     }
 
 }

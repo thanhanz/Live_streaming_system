@@ -19,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.util.Map;
@@ -49,7 +50,6 @@ public class ChatMessageController  {
     @MessageMapping("/chat/{streamId}/ban")
     public ApiResponse<Void> banChatUser(@DestinationVariable String streamId, BanChatRequest request) {
         chatMessageService.banUser(streamId, request);
-
         simpMessagingTemplate.convertAndSend("/livestream/topic/stream/" + streamId + "/ban", request);
 
         return ApiResponse.<Void>builder()
@@ -58,7 +58,9 @@ public class ChatMessageController  {
                 .build();
     }
 
+
     @GetMapping("/stream/{streamId}/chat/banned_list")
+    @ResponseBody
     public ApiResponse<Map<String, String>> getBannedUsers(@PathVariable String streamId) {
         Map<String, String> result = chatMessageService.getBannedUsers(streamId);
 
@@ -70,6 +72,7 @@ public class ChatMessageController  {
     }
 
     @GetMapping("/stream/{streamId}/chat/is_banned")
+    @ResponseBody
     public ApiResponse<Boolean> checkIsBanned(@PathVariable String streamId, Principal principal) {
         String userId = userService.getUserIdByUsername(principal.getName());
         boolean isBanned = chatMessageService.checkIsBanned(streamId, userId);

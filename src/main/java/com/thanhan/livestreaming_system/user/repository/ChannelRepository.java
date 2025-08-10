@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,4 +17,10 @@ public interface ChannelRepository extends JpaRepository<Channel, Long> {
     Channel getChannelByOwnerId(@Param("ownerId") UUID ownerId);
 
     Optional<Channel> getChannelById(Long id);
+
+    @Query("SELECT c FROM Channel c " +
+            "JOIN Follow f ON f.channel.id = c.id " +
+            "WHERE f.follower.id = :userId ")
+    List<Channel> getFollowingChannels(@Param("userId")UUID userId);
+
 }

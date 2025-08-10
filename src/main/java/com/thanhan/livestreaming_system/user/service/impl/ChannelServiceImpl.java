@@ -5,6 +5,7 @@ import com.thanhan.livestreaming_system.common.exception.ErrorCode;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelUpdateRequest;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
@@ -25,8 +26,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,6 +44,7 @@ public class ChannelServiceImpl implements ChannelService {
     RedisTemplate<String, Long> redisTemplate;
 
     @Override
+    @Transactional
     public ChannelResponse create(ChannelCreationRequest request) throws IllegalAccessException {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User u = userService.getUserByUsername(username);
@@ -71,6 +76,7 @@ public class ChannelServiceImpl implements ChannelService {
     }
 
     @Override
+    @Transactional
     public ChannelResponse getChannelById(String id) {
 
         Channel c = channelRepository.getChannelById(Long.valueOf(id)).orElseThrow(() ->
@@ -105,7 +111,16 @@ public class ChannelServiceImpl implements ChannelService {
             redisTemplate.delete(countFollowerKey);
     }
 
-
+    @Override
+    @Transactional
+    public List<ChannelCacheResponse> getFollowingChannels() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User u = userService.getUserByUsername(username);
+        return channelRepository.getFollowingChannels(u.getId())
+                .stream()
+                .map(c -> ChannelMapper.toChannelCacheResponse(c, 0L)) //Tạm thời là 0 vì chưa cần đến thông tin 9 xác
+                .collect(Collectors.toList());
+    }
 
     @Override
     public Channel findById(Long channelId) {

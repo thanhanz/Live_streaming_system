@@ -2,9 +2,11 @@ package com.thanhan.livestreaming_system.user.service;
 
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelUpdateRequest;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ChannelService {
@@ -15,4 +17,5 @@ public interface ChannelService {
     Channel getChannelByOwnerId(String ownerId);
     Long countFollower(Long channelId);
     Channel findById(Long channelId);
+    List<ChannelCacheResponse> getFollowingChannels();
 }

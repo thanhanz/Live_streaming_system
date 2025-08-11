@@ -28,9 +28,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -79,7 +77,7 @@ public class StreamServiceImpl implements StreamService {
         }
 
         streamSession.setStatus(StreamStatus.STREAMING);
-        streamRepository.save(streamSession);
+
         return true;
     }
 
@@ -163,18 +161,28 @@ public class StreamServiceImpl implements StreamService {
         return streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
     }
 
-//    @Override
-//    public List<StreamSessionResponse> getAllStreamsByChannelId(String channelId) {
-//        return streamRepository.findByChannelId(Long.valueOf(channelId))
-//                .stream().map((Stream stream) -> {
-//                    Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
-//                    return StreamMapper.toStreamResponse(stream, currentViewer);
-//                } ).collect(Collectors.toList());
-//    }
+    @Override
+    public Stream getLiveStreamByStreamKey(String streamKey) {
+        return streamRepository.findByStreamKey(streamKey);
+    }
+
 
     @Override
     public Boolean isLiveStreaming(String streamKey) {
         Stream streamSession = streamRepository.findByStreamKey(streamKey);
         return streamSession != null && streamSession.getStatus() == StreamStatus.STREAMING;
+    }
+
+    @Override
+    public Set<String> getLiveStreamingChannels() {
+        String liveStreamingChannelsKey = StreamCacheKey.isLivestreamingChannels();
+        if (!redisTemplate.hasKey(liveStreamingChannelsKey))
+            return new HashSet<>();
+        Set<String> results = redisTemplate.opsForSet().members(liveStreamingChannelsKey);
+
+        if (results == null || results.size() == 0) {
+            return new HashSet<>();
+        }
+        return results;
     }
 }

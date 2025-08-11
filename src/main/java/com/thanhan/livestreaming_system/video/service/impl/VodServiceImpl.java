@@ -85,7 +85,7 @@ public class VodServiceImpl implements VodService {
 
         vod.setTitle(request.title());
         vod.setDescription(request.description());
-        vod.setImageUrl(request.imageUrl());
+        vod.setThumbnail(request.thumbnail());
         vod.setChannel(channel);
 
         Vod savedVod = vodRepository.save(vod);
@@ -137,7 +137,7 @@ public class VodServiceImpl implements VodService {
         Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new RuntimeException("Video not found"));
         vod.setTitle(request.title());
         vod.setDescription(request.description());
-        vod.setImageUrl(request.imageUrl());
+        vod.setThumbnail(request.imageUrl());
         vod.setOnlyMember(request.isOnlyMember());
         vod.setPublished(request.published());
 

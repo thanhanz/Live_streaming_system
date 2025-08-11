@@ -29,8 +29,8 @@ public class Vod {
     @Column
     private String description;
 
-    @Column
-    private String imageUrl;
+    @Column(name = "thumbnail_url")
+    private String thumbnail;
 
     @Column
     private String videoUrl;

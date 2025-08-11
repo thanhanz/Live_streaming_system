@@ -57,6 +57,4 @@ public class Stream {
     @Column(name = "viewer_count")
     private Integer viewerCount = 0;
 
-    // Constructors, getters, setters
-
 }

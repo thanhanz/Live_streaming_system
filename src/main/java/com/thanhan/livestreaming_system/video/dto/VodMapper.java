@@ -10,7 +10,7 @@ public class VodMapper {
                 vod.getId(),
                 vod.getTitle(),
                 vod.getDescription(),
-                vod.getImageUrl(),
+                vod.getThumbnail(),
                 vod.getPublished(),
                 vod.getOnlyMember(),
                 vod.getChannel().getId(),

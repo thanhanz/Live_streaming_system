@@ -7,6 +7,7 @@ import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionRes
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 
 import java.util.List;
+import java.util.Set;
 
 public interface StreamService {
     StreamPrepareResponse prepare(StreamPrepareRequest request);
@@ -14,7 +15,9 @@ public interface StreamService {
     void finish(String streamKey);
     StreamSessionResponse getStreamById(String streamId);
     Stream getStreamByStreamId(String streamId);
-//    List<StreamSessionResponse> getAllStreamsByChannelId(String channelId);
     Boolean isLiveStreaming(String streamKey);
+    Stream getLiveStreamByStreamKey(String streamKey);
     void uploadRecordLivestreamToR2(String streamKey);
+
+    Set<String> getLiveStreamingChannels();
 }

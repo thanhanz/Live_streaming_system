@@ -1,40 +1,30 @@
 package com.thanhan.livestreaming_system.livestream.controller;
 
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
-import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
+import com.thanhan.livestreaming_system.livestream.service.LiveWebSocketService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
-import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,6 +41,7 @@ public class StreamController {
     final StreamService streamService;
     final FFmpegService ffmpegService;
     final S3Client s3Client;
+    private final LiveWebSocketService websocketService;
 
     @Value("${cloudflare.r2.bucket}")
     String R2Bucket;
@@ -71,6 +62,13 @@ public class StreamController {
                 .message("Preparing you streaming")
                 .build();
     }
+    @GetMapping("/livestreaming_channels")
+    public ApiResponse<Set<String>> getLiveStreamingChannels() {
+        return ApiResponse.<Set<String>>builder()
+                .status(200)
+                .data(streamService.getLiveStreamingChannels())
+                .build();
+    }
 
     @PostMapping("/on_publish")
     public ApiResponse<Void> onPublish(@RequestParam("name") String request) {
@@ -84,8 +82,10 @@ public class StreamController {
         }
 
         log.info("Accept: Valid stream key");
-        ffmpegService.transcodeToHls(request);
-//        ffmpegService.transcodeToDash(request);
+//        ffmpegService.transcodeToHls(request);
+        Stream stream = streamService.getLiveStreamByStreamKey(request);
+        String channelId = stream.getChannel().getId().toString();
+        websocketService.sentLiveStreamStatus(channelId, "streaming");
 
         return ApiResponse.<Void>builder()
                 .status(200)
@@ -96,6 +96,9 @@ public class StreamController {
     @PostMapping("/finish")
     public ApiResponse<Void> finish(@RequestParam("name") String streamKey) {
         streamService.finish(streamKey);
+        Stream stream = streamService.getLiveStreamByStreamKey(streamKey);
+        String channelId = stream.getChannel().getId().toString();
+        websocketService.sentLiveStreamStatus(channelId, "stopped");
 
         return ApiResponse.<Void>builder()
                 .status(200)

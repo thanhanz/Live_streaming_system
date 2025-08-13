@@ -12,6 +12,7 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
@@ -34,19 +35,33 @@ public class CloudFlareR2Config {
         AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
 
         S3Configuration config = S3Configuration.builder()
-                //Required for R2
                 .pathStyleAccessEnabled(true)
                 .chunkedEncodingEnabled(false)
                 .build();
 
         return S3Client.builder()
+                .region(Region.of("auto"))
                 .httpClientBuilder(ApacheHttpClient.builder())
                 .endpointOverride(URI.create(endpoint))
                 .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .region(Region.of("auto"))
                 .serviceConfiguration(config)
                 .build();
     }
 
+    @Bean
+    public S3Presigner s3Presigner() {
+        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+
+        S3Configuration config = S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
+                .build();
+
+        return S3Presigner.builder()
+                .region(Region.of("auto"))
+                .endpointOverride(URI.create(endpoint))
+                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                .serviceConfiguration(config)
+                .build();
+    }
 
 }

@@ -72,7 +72,7 @@ public class VodServiceImpl implements VodService {
     }
 
     @Override
-    public Vod uploadVod(VodCreationRequest request, MultipartFile vodMp4) {
+    public String uploadVod(VodCreationRequest request, MultipartFile thumbnail) {
         Channel channel = channelService.findById(request.channelId());
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User authUser = userService.getUserByUsername(username);
@@ -82,41 +82,44 @@ public class VodServiceImpl implements VodService {
         }
 
         Vod vod = new Vod();
-
         vod.setTitle(request.title());
         vod.setDescription(request.description());
-        vod.setThumbnail(request.thumbnail());
         vod.setChannel(channel);
 
+        String storageThumbnail = uploadThumbnailToR2(thumbnail);
+
+        /*
+            Set prefix to cache thumbnail from R2
+         */
+        vod.setThumbnail(storageThumbnail);
         Vod savedVod = vodRepository.save(vod);
 
-        // Upload video và sendMessage (upload success)
-        String rawStorage = uploadVideoToR2(vod.getId(), vodMp4);
 
-        videoUploadProducer.sendMessage(new VodTranscodeRequest(vod.getId(), rawStorage));
-        log.info("Send message to transcode service: ", rawStorage);
+//        videoUploadProducer.sendMessage(new VodTranscodeRequest(vod.getId(), rawStorage));
+//        log.info("Send message to transcode service: ", rawStorage);
 
-        return savedVod;
+        return savedVod.getId().toString();
     }
 
-    private String uploadVideoToR2(Long vodId, MultipartFile vodMp4) {
-        String rawKey = "raw/vod/" + vodId + "/" + vodMp4.getName();
+    private String uploadThumbnailToR2(MultipartFile thumbnail) {
+        String rawKey = "vods/thumbnail/" + thumbnail.getName();
         try {
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(R2Bucket)
                     .key(rawKey)
-                    .contentType("video/mp4")
+                    .contentType(thumbnail.getContentType())
                     .build();
 
-            byte[] bytes = vodMp4.getBytes();
+            byte[] bytes = thumbnail.getBytes();
             s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
 
-            log.info("Uploaded: {}", vodMp4.getName());
+            log.info("Uploaded: {}", thumbnail.getName());
         } catch (Exception e) {
-            log.error("Failed to upload file: {}", vodMp4.getName(), e);
+            log.error("Failed to upload file: {}", thumbnail.getName(), e);
         }
         return rawKey;
     }
+
 
     @Override
     public void deleteVod(Long id) {

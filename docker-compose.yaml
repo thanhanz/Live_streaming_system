@@ -92,11 +92,15 @@ services:
       - DB_NAME=livestreaming_db
       - DB_USERNAME=postgres
       - DB_PASSWORD=1234
+
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_ACCESSKEY=${R2_ACCESSKEY}
       - R2_SECRETKEY=${R2_SECRETKEY}
       - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+
       - RABBITMQ_HOST=rabbitmq
+      - VNP_SECRET_KEY=${VNP_SECRET_KEY}
+      - VNP_TMNCODE=${VNP_TMNCODE}
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
 

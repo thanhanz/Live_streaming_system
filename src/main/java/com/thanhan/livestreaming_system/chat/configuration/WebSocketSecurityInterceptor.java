@@ -39,19 +39,18 @@ public class WebSocketSecurityInterceptor implements ChannelInterceptor {
                 var token = authHeader.substring(7);
                     try {
                         Jwt jwt = jwtDecoder.decode(token);
-                        log.info("JWT token: {}", jwt);
 
                         String username = jwt.getSubject();
                         Authentication auth = new UsernamePasswordAuthenticationToken(username,
                                 null,
-                                List.of()); //Authorities
+                                List.of()); //Authories trong day
 
                         accessor.setUser(auth);
                         SecurityContextHolder.getContext().setAuthentication(auth);
 
 
                     } catch (JwtException e) {
-                        throw new JwtException("Invalid JWT token", e);
+                        throw new JwtException("Invalid JWT websocket token", e);
                 }
             }
         }

@@ -4,6 +4,7 @@ import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.video.dto.*;
 import com.thanhan.livestreaming_system.video.entity.Vod;
+import com.thanhan.livestreaming_system.video.service.R2Service;
 import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,17 @@ public class VodController {
     VodService vodService;
 
     @PostMapping("/upload")
-    public ApiResponse<Vod> upload(@RequestParam("video") MultipartFile file, VodCreationRequest request) throws AppException {
-        return ApiResponse.<Vod>builder()
+    public ApiResponse<String> upload(@RequestParam("thumbnail") MultipartFile thumbnail,
+                                      @RequestParam("title") String title,
+                                      @RequestParam("channelId") Long channelId,
+                                      @RequestParam("description") String description) throws AppException {
+        //prepare upload video
+        String videoId  = vodService.uploadVod(new VodCreationRequest(title, description, channelId), thumbnail);
+
+        return ApiResponse.<String>builder()
                 .status(200)
-                .data(vodService.uploadVod(request, file))
-                .message("Upload video success!")
+                .data(videoId)
+                .message("Prepare meta data video success!")
                 .build();
     }
 

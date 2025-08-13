@@ -3,6 +3,7 @@ package com.thanhan.livestreaming_system.livestream.service.impl;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.video.dto.VodTranscodeRequest;
 import com.thanhan.livestreaming_system.video.entity.Vod;
+import com.thanhan.livestreaming_system.video.service.R2Service;
 import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class FFmpegServiceImpl implements FFmpegService {
 
     private final S3Client s3Client;
     private final VodService vodService;
+    private final R2Service r2Service;
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
@@ -56,7 +58,9 @@ public class FFmpegServiceImpl implements FFmpegService {
     /*
         Thay = ten domain chu khong nen su dung Id nay`
      */
-    private String PUBLIC_R2_URL = "https://" + publicR2Id + ".r2.dev/";
+    public String getPublicR2Url() {
+        return "https://" + publicR2Id + ".r2.dev/";
+    }
 
     @Override
     @Async
@@ -141,10 +145,10 @@ public class FFmpegServiceImpl implements FFmpegService {
         @Override
         @Async
         public void transcodeVodToHls(VodTranscodeRequest request) throws IOException {
-            log.info("Start transcode HLS VOD to R2 for VOD ID: {}", request.vodId());
+            log.info("Start transcode HLS VOD to R2 for channelId ID: {}", request.channelId());
 
             try {
-                File tmpMp4File = downLoadHLSFromR2(request.vodId().toString(), request.vodStorageKey());
+                File tmpMp4File = downLoadHLSFromR2(request.channelId().toString(), request.vodStorageKey());
                 if (!tmpMp4File.exists() || tmpMp4File.length() == 0) {
                     throw new RuntimeException("File not found: " + tmpMp4File.getAbsolutePath());
                 }
@@ -223,13 +227,15 @@ public class FFmpegServiceImpl implements FFmpegService {
                     /*
                      Upload HLS file to R2
                      */
-                    uploadHLSToR2(request.vodId(), parentDir);
+                    uploadHLSToR2(request.channelId(), request.vodId(),parentDir);
 
+                    Long channelId = request.channelId();
                     Long vodId = request.vodId();
-                    String m3u8UrlInR2 = PUBLIC_R2_URL + "hls/" + vodId.toString() + "/master.m3u8";
+                    String m3u8UrlInR2 = getPublicR2Url() + "channels/" + channelId.toString() +"/vods_hls/" + vodId.toString() + "/master.m3u8";
 
                     Vod transcodedVod = vodService.updateVodUrl(m3u8UrlInR2, vodId);
-
+                    //Remove raw video when upload
+                    r2Service.deleteFileFromR2(request.vodStorageKey());
                     log.info("Finished upload HLS file to R2 and public url: ", transcodedVod.getVideoUrl());
 
                 } catch (IOException | InterruptedException e) {
@@ -240,11 +246,10 @@ public class FFmpegServiceImpl implements FFmpegService {
                 log.error("Failed in process transcode by FFmpeg command and upload to R2: ", e);
             }
             finally {
-                String localFilePath = "/tmp/vod_" + request.vodId();
+                String localFilePath = "/tmp/vod_" + request.channelId();
                 cleanTempVod(localFilePath);
             }
         }
-
 
         private File downLoadHLSFromR2(String vodId, String rawStorageKey) throws IOException {
             String tempDir = System.getProperty("java.io.tmpdir");
@@ -276,8 +281,8 @@ public class FFmpegServiceImpl implements FFmpegService {
         }
 
 
-    private void uploadHLSToR2(Long vodId, File hlsOutput) throws IOException {
-        String baseKey = "hls/" + vodId + "/";
+    private void uploadHLSToR2(Long channelId, Long vodId, File hlsOutput) throws IOException {
+        String baseKey = "channels/" + channelId.toString() +"/vods_hls/" + vodId.toString() + "/";
         log.info("Start upload file from {}  to R2!", hlsOutput.toPath());
 
         try (Stream<Path> paths = Files.walk(hlsOutput.toPath())) {

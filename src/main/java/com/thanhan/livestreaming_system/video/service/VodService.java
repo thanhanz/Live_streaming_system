@@ -14,7 +14,7 @@ import java.util.List;
 public interface VodService {
     PaginationResponse<Vod> getAllVodsByChannelId(Long channelId, VodGetRequest request);
 
-    Vod uploadVod(VodCreationRequest request, MultipartFile vodMp4);
+    String uploadVod(VodCreationRequest request, MultipartFile thumbnail);
     void deleteVod(Long id);
     VodResponse getVodById(Long id);
     VodResponse updateVod(Long id, VodUpdationRequest request);

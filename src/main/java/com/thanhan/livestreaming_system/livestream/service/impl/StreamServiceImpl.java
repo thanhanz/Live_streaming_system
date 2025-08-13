@@ -98,9 +98,9 @@ public class StreamServiceImpl implements StreamService {
         uploadRecordLivestreamToR2(streamKey);
 
         redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
-        redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
-        redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
-        redisTemplate.opsForSet().remove("chat:banned:" + streamSession.getId());
+//        redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
+//        redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
+//        redisTemplate.opsForSet().remove("chat:banned:" + streamSession.getId());
 
         log.info("Removed from cache: " + streamSession.getId());
 

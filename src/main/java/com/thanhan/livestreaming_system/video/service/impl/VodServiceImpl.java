@@ -15,6 +15,7 @@ import com.thanhan.livestreaming_system.video.entity.Vod;
 import com.thanhan.livestreaming_system.video.messaging.producer.VideoUploadProducer;
 import com.thanhan.livestreaming_system.video.repository.VodRepository;
 import com.thanhan.livestreaming_system.video.service.VodService;
+import com.thanhan.livestreaming_system.video.utils.VodsRedisKey;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,27 +50,50 @@ public class VodServiceImpl implements VodService {
     private final UserService userService;
     private final S3Client s3Client;
     private final VideoUploadProducer videoUploadProducer;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
 
     @Override
-    public PaginationResponse<Vod> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
+    public PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
         Sort.Direction direction = Sort.Direction.fromOptionalString(request.getOrder()).orElse(Sort.Direction.DESC);
         String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
 
-        Pageable pageable = PageRequest.of(request.getPage(), request.getLimit(), Sort.by(direction, sortBy));
+        Channel c = channelService.findById(channelId);
+        ChannelCacheResponse channelResponse = new ChannelCacheResponse(c.getId().toString(), c.getDisplayName(), c.getAvatarUrl(), c.getFollowersCount().longValue());
+
+        Pageable pageable = PageRequest.of(request.getPage() - 1, request.getLimit(), Sort.by(direction, sortBy));
 
         Page<Vod> pageResult = vodRepository.getPaginationByChannelId(channelId, pageable);
 
         List<Vod> items = new ArrayList<>(pageResult.getContent());
+        List<VodResponse> result = items.stream().map(vod -> {
+            String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
+            Object pending = redisTemplate.opsForValue().get(pendingViewKey);
+            Long pendingView = 0L;
 
-        return PaginationResponse.<Vod>builder()
+            if (pending != null) {
+                if (pending instanceof Number) {
+                    pendingView = ((Number) pending).longValue();
+                } else if (pending instanceof String) {
+                    pendingView = Long.parseLong((String) pending);
+                }
+            }
+
+            Long view = Boolean.TRUE.equals(redisTemplate.hasKey(pendingViewKey))
+                    ? vod.getTotalView() +  pendingView
+                    : vod.getTotalView();
+
+            return VodMapper.toVodResponse(vod, view, channelResponse);
+        }).toList();
+
+        return PaginationResponse.<VodResponse>builder()
                 .page(pageResult.getNumber() + 1)
                 .limit(pageResult.getSize())
                 .totalItems((int) pageResult.getTotalElements())
                 .totalPage(pageResult.getTotalPages())
-                .items(items)
+                .items(result)
                 .build();
     }
 
@@ -85,7 +111,7 @@ public class VodServiceImpl implements VodService {
         vod.setTitle(request.title());
         vod.setDescription(request.description());
         vod.setChannel(channel);
-
+        vod.setTotalView(0L);
         String storageThumbnail = uploadThumbnailToR2(thumbnail);
 
         /*
@@ -130,9 +156,14 @@ public class VodServiceImpl implements VodService {
     @Override
     public VodResponse getVodById(Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
-        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
+        ChannelCacheResponse response = getChannelCache(vod);
+        String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
 
-        return VodMapper.toVodResponse(vod, response);
+        Long view = redisTemplate.hasKey(pendingViewKey)
+                ? Long.valueOf(vod.getTotalView() + redisTemplate.opsForValue().get(pendingViewKey))
+                : vod.getTotalView();
+
+        return VodMapper.toVodResponse(vod, view, response);
     }
 
     @Override
@@ -143,12 +174,23 @@ public class VodServiceImpl implements VodService {
         vod.setThumbnail(request.imageUrl());
         vod.setOnlyMember(request.isOnlyMember());
         vod.setPublished(request.published());
-
         Vod updatedVod = vodRepository.save(vod);
 
-        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
+        ChannelCacheResponse response = getChannelCache(vod);
+        String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
 
-        return VodMapper.toVodResponse(updatedVod, response);
+        Long view = redisTemplate.hasKey(pendingViewKey)
+                ? Long.valueOf(vod.getTotalView() + redisTemplate.opsForValue().get(pendingViewKey))
+                : vod.getTotalView();
+
+        return VodMapper.toVodResponse(updatedVod, view, response);
+    }
+
+    @Override
+    public void updateViews(Long vodId, Long views) {
+        Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new RuntimeException("Video not found"));
+        vod.setTotalView(vod.getTotalView() + views);
+        vodRepository.save(vod);
     }
 
     @Override
@@ -160,16 +202,33 @@ public class VodServiceImpl implements VodService {
     }
 
     @Override
-    public VodResponse hideVod(Long vodId) {
+    public void hideVod(Long vodId) {
         Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
         vod.setOnlyMember(false);
-        ChannelCacheResponse response = getChannelCache(vod, vod.getChannel().getId());
-        return VodMapper.toVodResponse(vodRepository.save(vod), response);
+        vodRepository.save(vod);
     }
 
-    private ChannelCacheResponse getChannelCache(Vod vod, Long channelId) {
+    private ChannelCacheResponse getChannelCache(Vod vod) {
         Long totalFollowers = channelService.countFollower(vod.getChannel().getId());
         return ChannelMapper.toChannelCacheResponse(vod.getChannel(), totalFollowers);
     }
 
+    @Override
+    public String initJoinVod(Long vodId, String sessionId) {
+        String sessionKey = "vods:" + vodId + ":" + sessionId;
+        redisTemplate.opsForValue().setIfAbsent(sessionKey, sessionId, 65, TimeUnit.SECONDS);
+
+        return sessionKey;
+    }
+
+    @Override
+    public void acceptedViews(Long vodId, String sessionKey) {
+        Boolean isAccepted = redisTemplate.hasKey(sessionKey);
+        String pendingKey = VodsRedisKey.acceptedViewKey(vodId.toString());
+
+        if (Boolean.TRUE.equals(isAccepted)) {
+            redisTemplate.opsForValue().increment(pendingKey, 1);
+            redisTemplate.delete(sessionKey);
+        }
+    }
 }

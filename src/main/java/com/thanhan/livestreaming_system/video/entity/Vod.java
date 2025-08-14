@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.video.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,10 +47,14 @@ public class Vod {
     @JoinColumn(name = "channel_id")
     private Channel channel;
 
+    @Column(name = "views")
+    private Long totalView;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     @CreationTimestamp
     private Instant createdAt;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     @UpdateTimestamp
     private Instant updatedAt;
 }

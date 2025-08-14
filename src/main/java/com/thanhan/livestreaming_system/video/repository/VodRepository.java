@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ public interface VodRepository extends JpaRepository<Vod, Long> {
     @Query(value = "SELECT * FROM Vods v WHERE v.channel_id = :channelId", nativeQuery = true)
     List<Vod> getAllByChannelId(Long channelId);
 
-    Page<Vod> getPaginationByChannelId(Long channelId, Pageable pageable);
+    @Query(value = "SELECT v FROM Vod v WHERE v.channel.id = :channelId")
+    Page<Vod> getPaginationByChannelId(@Param("channelId") Long channelId, Pageable pageable);
 
 }

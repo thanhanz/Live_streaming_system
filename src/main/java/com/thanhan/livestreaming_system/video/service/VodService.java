@@ -12,12 +12,16 @@ import software.amazon.awssdk.core.protocol.VoidSdkResponse;
 import java.util.List;
 
 public interface VodService {
-    PaginationResponse<Vod> getAllVodsByChannelId(Long channelId, VodGetRequest request);
 
+    PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request);
     String uploadVod(VodCreationRequest request, MultipartFile thumbnail);
     void deleteVod(Long id);
     VodResponse getVodById(Long id);
     VodResponse updateVod(Long id, VodUpdationRequest request);
     Vod updateVodUrl(String url, Long id);
-    VodResponse hideVod(Long vodId);
+    void hideVod(Long vodId);
+    void updateViews(Long vodId, Long views);
+
+    String initJoinVod(Long vodId, String sessionId);
+    void acceptedViews(Long vodId, String sessionKey);
 }

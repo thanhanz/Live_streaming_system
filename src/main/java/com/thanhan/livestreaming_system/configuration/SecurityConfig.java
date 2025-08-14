@@ -35,7 +35,8 @@ public class SecurityConfig {
                                                 "/auth/refresh",
                                                 "/auth/logout",
                                                 "/api/stream/**",
-                                                "/watch" //Test in thymeleaf
+                                                "/watch", //Test in thymeleaf
+                                                "/api/vods/**"
     };
 
     @Value("${jwt.signer-key}")

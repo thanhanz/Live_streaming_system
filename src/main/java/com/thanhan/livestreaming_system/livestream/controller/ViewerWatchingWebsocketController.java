@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.livestream.controller;
 
 
+import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,17 +32,16 @@ public class ViewerWatchingWebsocketController {
         String sessionId = accessor.getSessionId();
         Long now = System.currentTimeMillis();
         String streamId = payload.get("streamId");
-
+        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
         log.info("StreamId: " + streamId + ", and sessionId: " + sessionId);
 
         redisTemplate.opsForSet().add("active_stream", streamId);
-        redisTemplate.opsForSet().add("live:viewer:" + streamId, sessionId);
-        redisTemplate.opsForZSet().add("live:viewer:score:" + streamId, sessionId, now);
+        redisTemplate.opsForZSet().add(concurrencyViewersKey, sessionId, now);
 
-        Boolean exists = redisTemplate.hasKey("live:viewer:" + streamId);
-        log.info("📦 Redis key live:viewer:" + streamId + " exists =m" + exists);
+        Boolean exists = redisTemplate.hasKey(concurrencyViewersKey);
+        log.info("Redis key live:viewer:" + streamId + " exists =" + exists);
 
-        sendToCountCache(streamId);
+        sendConcurrencyViewersToSub(streamId);
     }
 
     //For checking user is watching (in 30s - 60s)
@@ -50,12 +50,13 @@ public class ViewerWatchingWebsocketController {
         String sessionId = accessor.getSessionId();
         Long now = System.currentTimeMillis();
         String streamId = payload.get("streamId");
-
-        redisTemplate.opsForZSet().add("live:viewer:score:" + streamId, sessionId, now);
+        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
+        redisTemplate.opsForZSet().add(concurrencyViewersKey, sessionId, now);
     }
 
-    private void sendToCountCache(String streamId) {
-        long isWatchingCount = redisTemplate.opsForSet().size("live:viewer:" + streamId).intValue();
+    private void sendConcurrencyViewersToSub(String streamId) {
+        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
+        long isWatchingCount = redisTemplate.opsForZSet().size(concurrencyViewersKey).intValue();
         messagingTemplate.convertAndSend("/livestream/topic/viewers/" + streamId, isWatchingCount);
     }
 }

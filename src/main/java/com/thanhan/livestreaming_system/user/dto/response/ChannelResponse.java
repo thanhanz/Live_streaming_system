@@ -10,5 +10,6 @@ public record ChannelResponse(
         String description,
         String avatar,
         String bannerUrl,
-        Instant createdAt) {
+        Instant createdAt,
+        int totalFollowers) {
 }

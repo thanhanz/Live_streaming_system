@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.livestream.service.impl;
 
+import com.thanhan.livestreaming_system.chat.utils.ChatUtils;
 import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
@@ -91,18 +92,19 @@ public class StreamServiceImpl implements StreamService {
             throw new RuntimeException("Stream key is not valid");
         }
 
+
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
 
         //Upload record livestream to R2
         uploadRecordLivestreamToR2(streamKey);
 
-        redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
-//        redisTemplate.opsForSet().remove("live:viewer:" + streamSession.getId());
-//        redisTemplate.opsForZSet().remove("live:viewer:score" + streamSession.getId());
-//        redisTemplate.opsForSet().remove("chat:banned:" + streamSession.getId());
+        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamSession.getId().toString());
+        String listBannedKey = ChatUtils.bannedChatKey(streamSession.getId().toString());
 
-        log.info("Removed from cache: " + streamSession.getId());
+        redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
+        redisTemplate.opsForZSet().remove(concurrencyViewersKey);
+        redisTemplate.opsForSet().remove(listBannedKey);
 
         streamRepository.save(streamSession);
     }

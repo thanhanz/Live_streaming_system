@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.video.controller;
 import com.thanhan.livestreaming_system.common.exception.AppException;
+import com.thanhan.livestreaming_system.common.paginate.PaginateParams;
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.video.dto.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/vods")
@@ -50,8 +52,14 @@ public class VodController {
         Paginate
      */
     @GetMapping("/channels/{channelId}")
-    public ApiResponse<PaginationResponse<Vod>> getVodsByChannelId(@PathVariable(name = "channelId") Long channelId, @RequestBody(required = false) VodGetRequest request) throws AppException  {
-        return ApiResponse.<PaginationResponse<Vod>>builder()
+    public ApiResponse<PaginationResponse<VodResponse>> getVodsByChannelId(@PathVariable(name = "channelId") Long channelId,
+                                                                           @RequestParam(defaultValue = "1") int page,
+                                                                           @RequestParam(defaultValue = "5") int limit,
+                                                                           @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                                           @RequestParam(defaultValue = "desc") String order) throws AppException  {
+
+        VodGetRequest request = VodGetRequest.of(page, limit, sortBy, order);
+        return ApiResponse.<PaginationResponse<VodResponse>>builder()
                 .message("Get paginated vod")
                 .data(vodService.getAllVodsByChannelId(channelId, request))
                 .build();
@@ -74,12 +82,31 @@ public class VodController {
     }
 
     @PutMapping("/{id}/hide")
-    public ApiResponse<VodResponse> hideVideo(@PathVariable(name = "id") Long id) throws AppException {
-        return ApiResponse.<VodResponse>builder()
+    public ApiResponse<Void> hideVideo(@PathVariable(name = "id") Long id) throws AppException {
+        vodService.hideVod(id);
+        return ApiResponse.<Void>builder()
                 .message("Hide vod id: " + id)
-                .data(vodService.hideVod(id))
                 .build();
     }
 
+    @PostMapping("/{id}/join")
+    public ApiResponse<String> joinVod(@PathVariable(name = "id") Long id,
+                                       @RequestBody Map<String, String> params) {
+        String key = vodService.initJoinVod(id, params.get("sessionId"));
+        return ApiResponse.<String>builder()
+                .data(key)
+                .status(203).build();
+    }
+
+    @PostMapping("/{id}/view")
+    public ApiResponse<Void> acceptView(@PathVariable(name = "id") Long id,
+                                        @RequestBody Map<String, String> params) {
+        String sessionKey = params.get("sessionKey");
+
+        vodService.acceptedViews(id, sessionKey);
+        return ApiResponse.<Void>builder()
+                .message("Accepted view in session: " + sessionKey)
+                .status(203).build();
+    }
 
 }

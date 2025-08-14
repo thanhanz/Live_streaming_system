@@ -17,7 +17,8 @@ public class ChannelMapper {
                 channel.getDescription(),
                 channel.getAvatarUrl(),
                 channel.getBannerUrl(),
-                channel.getCreatedAt()
+                channel.getCreatedAt(),
+                channel.getFollowersCount()
         );
     }
 

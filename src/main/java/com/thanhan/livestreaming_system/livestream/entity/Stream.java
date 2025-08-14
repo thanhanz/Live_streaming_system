@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.livestream.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -45,9 +46,9 @@ public class Stream {
     @Column(name = "rtmp_url")
     private String rtmpUrl;
 
-
     @Column(name = "created_at")
-    @CreatedDate
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
+    @CreationTimestamp
     private Instant createdAt;
 
 

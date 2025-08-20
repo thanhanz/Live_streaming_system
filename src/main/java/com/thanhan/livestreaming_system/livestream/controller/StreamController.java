@@ -2,9 +2,12 @@ package com.thanhan.livestreaming_system.livestream.controller;
 
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
+import com.thanhan.livestreaming_system.livestream.messaging.StreamTranscodeConsumer;
+import com.thanhan.livestreaming_system.livestream.messaging.StreamTranscodeProducer;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.livestream.service.LiveWebSocketService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
@@ -19,12 +22,14 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,12 +40,14 @@ import java.util.zip.ZipOutputStream;
 @RequestMapping("/api/stream")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+
+@CrossOrigin(origins = "http://localhost:3000", exposedHeaders = "Content-Disposition")
 public class StreamController {
 
     private static final Logger log = LoggerFactory.getLogger(StreamController.class);
     final StreamService streamService;
-    final FFmpegService ffmpegService;
     final S3Client s3Client;
+    final StreamTranscodeProducer streamTranscodeProducer;
     private final LiveWebSocketService websocketService;
 
     @Value("${cloudflare.r2.bucket}")
@@ -54,14 +61,19 @@ public class StreamController {
                 .data(streamService.getStreamById(streamId)).build();
     }
 
-    @GetMapping("/prepare")
-    public ApiResponse<StreamPrepareResponse> prepare(@RequestBody StreamPrepareRequest request) {
+    @PostMapping("/prepare")
+    public ApiResponse<StreamPrepareResponse> prepare(@RequestParam("thumbnail") MultipartFile thumbnail,
+                                                      @RequestParam("title") String title,
+                                                      @RequestParam("channelId") Long channelId,
+                                                      @RequestParam("description") String description) {
+
         return ApiResponse.<StreamPrepareResponse>builder()
-                .data(streamService.prepare(request))
+                .data(streamService.prepare(new StreamPrepareRequest(channelId, title, description), thumbnail))
                 .status(200)
                 .message("Preparing you streaming")
                 .build();
     }
+
     @GetMapping("/livestreaming_channels")
     public ApiResponse<Set<String>> getLiveStreamingChannels() {
         return ApiResponse.<Set<String>>builder()
@@ -71,7 +83,7 @@ public class StreamController {
     }
 
     @PostMapping("/on_publish")
-    public ApiResponse<Void> onPublish(@RequestParam("name") String request) {
+    public ApiResponse<Void> onPublish(@RequestParam("name") String request) throws IOException {
         log.info("Start: authen stream key");
         if (!streamService.isValidStreamKey(request)) {
             log.error("Reject: Invalid stream key");
@@ -82,7 +94,8 @@ public class StreamController {
         }
 
         log.info("Accept: Valid stream key");
-//        ffmpegService.transcodeToHls(request);
+        streamTranscodeProducer.sendMessage(request);
+
         Stream stream = streamService.getLiveStreamByStreamKey(request);
         String channelId = stream.getChannel().getId().toString();
         websocketService.sentLiveStreamStatus(channelId, "streaming");
@@ -99,27 +112,22 @@ public class StreamController {
         Stream stream = streamService.getLiveStreamByStreamKey(streamKey);
         String channelId = stream.getChannel().getId().toString();
         websocketService.sentLiveStreamStatus(channelId, "stopped");
-
+        log.info("Send message: [STOPPED] with channelId: " + channelId);
         return ApiResponse.<Void>builder()
                 .status(200)
                 .message("Your stream has been finished")
                 .build();
     }
 
-    @PostMapping("/upload") //Should be path variable
-    public ApiResponse<Void> uploadRecordVideo(@RequestParam("key") String key) {
-        log.info("Start recording video from stream key: " + key);
-        if (!streamService.isLiveStreaming(key)) {
-            throw new RuntimeException("Reject: You are not live streaming");
-        }
-
-        streamService.uploadRecordLivestreamToR2(key);
-
-        return ApiResponse.<Void>builder()
+    @GetMapping("/history")
+    public ApiResponse<List<StreamHistoryResponse>> getStreamHistory(@RequestParam("channelId") Long channelId) {
+        return ApiResponse.<List<StreamHistoryResponse>>builder()
+                .data(streamService.getFinishedStreamByChannelId(channelId))
                 .status(200)
-                .message("You are recording a livestream")
+                .message("Get list history!")
                 .build();
     }
+
 
     @PostMapping("/download")
     public ResponseEntity<Resource> downloadRecordingLivestream(@RequestParam("key") String key) {

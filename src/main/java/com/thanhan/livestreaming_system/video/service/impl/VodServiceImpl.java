@@ -55,6 +55,16 @@ public class VodServiceImpl implements VodService {
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
 
+    @Value("${cloudflare.r2.public-url-id}")
+    private String publicR2Id;
+
+    /*
+        Thay = ten domain chu khong nen su dung Id nay`
+     */
+    public String getPublicR2Url() {
+        return "https://" + publicR2Id + ".r2.dev/";
+    }
+
     @Override
     public PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
         Sort.Direction direction = Sort.Direction.fromOptionalString(request.getOrder()).orElse(Sort.Direction.DESC);
@@ -70,21 +80,7 @@ public class VodServiceImpl implements VodService {
         List<Vod> items = new ArrayList<>(pageResult.getContent());
         List<VodResponse> result = items.stream().map(vod -> {
             String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
-            Object pending = redisTemplate.opsForValue().get(pendingViewKey);
-            Long pendingView = 0L;
-
-            if (pending != null) {
-                if (pending instanceof Number) {
-                    pendingView = ((Number) pending).longValue();
-                } else if (pending instanceof String) {
-                    pendingView = Long.parseLong((String) pending);
-                }
-            }
-
-            Long view = Boolean.TRUE.equals(redisTemplate.hasKey(pendingViewKey))
-                    ? vod.getTotalView() +  pendingView
-                    : vod.getTotalView();
-
+            Long view = getCurrentView(vod, pendingViewKey);
             return VodMapper.toVodResponse(vod, view, channelResponse);
         }).toList();
 
@@ -98,7 +94,8 @@ public class VodServiceImpl implements VodService {
     }
 
     @Override
-    public String uploadVod(VodCreationRequest request, MultipartFile thumbnail) {
+    @Transactional
+    public String uploadMetadataForVod(VodCreationRequest request, MultipartFile thumbnail) {
         Channel channel = channelService.findById(request.channelId());
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User authUser = userService.getUserByUsername(username);
@@ -112,42 +109,20 @@ public class VodServiceImpl implements VodService {
         vod.setDescription(request.description());
         vod.setChannel(channel);
         vod.setTotalView(0L);
-        String storageThumbnail = uploadThumbnailToR2(thumbnail);
+        String storageThumbnail = uploadThumbnailToR2(request.channelId(), thumbnail);
 
         /*
             Set prefix to cache thumbnail from R2
          */
-        vod.setThumbnail(storageThumbnail);
+        String urlThumbnail = getPublicR2Url() + storageThumbnail;
+
+        vod.setThumbnail(urlThumbnail);
         Vod savedVod = vodRepository.save(vod);
-
-
-//        videoUploadProducer.sendMessage(new VodTranscodeRequest(vod.getId(), rawStorage));
-//        log.info("Send message to transcode service: ", rawStorage);
-
         return savedVod.getId().toString();
     }
 
-    private String uploadThumbnailToR2(MultipartFile thumbnail) {
-        String rawKey = "vods/thumbnail/" + thumbnail.getName();
-        try {
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(R2Bucket)
-                    .key(rawKey)
-                    .contentType(thumbnail.getContentType())
-                    .build();
-
-            byte[] bytes = thumbnail.getBytes();
-            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
-
-            log.info("Uploaded: {}", thumbnail.getName());
-        } catch (Exception e) {
-            log.error("Failed to upload file: {}", thumbnail.getName(), e);
-        }
-        return rawKey;
-    }
-
-
     @Override
+    @Transactional
     public void deleteVod(Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
         vodRepository.delete(vod);
@@ -159,14 +134,13 @@ public class VodServiceImpl implements VodService {
         ChannelCacheResponse response = getChannelCache(vod);
         String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
 
-        Long view = redisTemplate.hasKey(pendingViewKey)
-                ? Long.valueOf(vod.getTotalView() + redisTemplate.opsForValue().get(pendingViewKey))
-                : vod.getTotalView();
+        Long view = getCurrentView(vod, pendingViewKey);
 
         return VodMapper.toVodResponse(vod, view, response);
     }
 
     @Override
+    @Transactional
     public VodResponse updateVod(Long vodId, VodUpdationRequest request) {
         Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new RuntimeException("Video not found"));
         vod.setTitle(request.title());
@@ -179,9 +153,7 @@ public class VodServiceImpl implements VodService {
         ChannelCacheResponse response = getChannelCache(vod);
         String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
 
-        Long view = redisTemplate.hasKey(pendingViewKey)
-                ? Long.valueOf(vod.getTotalView() + redisTemplate.opsForValue().get(pendingViewKey))
-                : vod.getTotalView();
+        Long view = getCurrentView(vod, pendingViewKey);
 
         return VodMapper.toVodResponse(updatedVod, view, response);
     }
@@ -231,4 +203,43 @@ public class VodServiceImpl implements VodService {
             redisTemplate.delete(sessionKey);
         }
     }
+
+
+    private Long getCurrentView(Vod vod, String pendingViewKey) {
+        Object pending = redisTemplate.opsForValue().get(pendingViewKey);
+        Long pendingView = 0L;
+
+        if (pending != null) {
+            if (pending instanceof Number) {
+                pendingView = ((Number) pending).longValue();
+            } else if (pending instanceof String) {
+                pendingView = Long.parseLong((String) pending);
+            }
+        }
+
+        return Boolean.TRUE.equals(redisTemplate.hasKey(pendingViewKey))
+                ? vod.getTotalView() +  pendingView
+                : vod.getTotalView();
+    }
+
+    private String uploadThumbnailToR2(Long channelId, MultipartFile thumbnail) {
+            String rawKey = "vods/thumbnail/" + channelId +"/" + System.currentTimeMillis() + "_" + thumbnail.getName();
+        try {
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(R2Bucket)
+                    .key(rawKey)
+                    .contentType(thumbnail.getContentType())
+                    .build();
+
+            byte[] bytes = thumbnail.getBytes();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+
+            log.info("Uploaded: {}", thumbnail.getName());
+        } catch (Exception e) {
+            log.error("Failed to upload file: {}", thumbnail.getName(), e);
+        }
+        return rawKey;
+    }
+
+
 }

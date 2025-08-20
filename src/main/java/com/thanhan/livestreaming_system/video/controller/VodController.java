@@ -30,7 +30,7 @@ public class VodController {
                                       @RequestParam("channelId") Long channelId,
                                       @RequestParam("description") String description) throws AppException {
         //prepare upload video
-        String videoId  = vodService.uploadVod(new VodCreationRequest(title, description, channelId), thumbnail);
+        String videoId  = vodService.uploadMetadataForVod(new VodCreationRequest(title, description, channelId), thumbnail);
 
         return ApiResponse.<String>builder()
                 .status(200)

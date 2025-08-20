@@ -58,10 +58,14 @@ cloudflare:
     public-url-id: ${R2_PUBLIC_URL}
 
 rabbitmq:
+  exchange: "video.transcode.exchange"
   transcode:
-    exchange: "video.transcode.exchange"
-    routing-key: "video.transcode"
-    queue: "video.transcode.queue"
+    live:
+      queue: "video.transcode.live.queue"
+      routing-key: "video.transcode.live"
+    vod:
+      queue: "video.transcode.vod.queue"
+      routing-key: "video.transcode.vod"
 
 vnpay:
   tmn-code: ${VNP_TMNCODE}

@@ -12,5 +12,6 @@ public record VodResponse(Long id,
                           Boolean isOnlyMember,
                           Long totalView,
                           Instant createdAt,
+                          String url,
                           ChannelCacheResponse channel) {
 }

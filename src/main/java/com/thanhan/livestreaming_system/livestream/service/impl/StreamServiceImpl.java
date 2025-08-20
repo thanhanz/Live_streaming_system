@@ -4,6 +4,7 @@ import com.thanhan.livestreaming_system.chat.utils.ChatUtils;
 import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -46,8 +48,18 @@ public class StreamServiceImpl implements StreamService {
     @Value("${cloudflare.r2.bucket}")
     String R2Bucket;
 
+    @Value("${cloudflare.r2.public-url-id}")
+    private String publicR2Id;
+
+    /*
+        Thay = ten domain chu khong nen su dung Id nay`
+     */
+    public String getPublicR2Url() {
+        return "https://" + publicR2Id + ".r2.dev/";
+    }
+
     @Override
-    public StreamPrepareResponse prepare(StreamPrepareRequest request) {
+    public StreamPrepareResponse prepare(StreamPrepareRequest request, MultipartFile thumbnail) {
         Channel channel = channelService.findById(request.channelId());
 
         Stream streamSession = new Stream();
@@ -55,16 +67,41 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setTitle(request.title());
         streamSession.setDescription(request.description());
         streamSession.setStatus(StreamStatus.PREPARING);
-        streamSession.setCreatedAt(Instant.now());
-
         String generateStreamKey = UUID.randomUUID().toString();
         String rtmpUrl = "rtmp://localhost:1935/live/";
 
         streamSession.setStreamKey(generateStreamKey);
         streamSession.setRtmpUrl(rtmpUrl);
+
+        String storageThumbnail = uploadThumbnailToR2(request.channelId(), thumbnail);
+
+        /*
+            Set prefix to cache thumbnail from R2
+         */
+        String urlThumbnail = getPublicR2Url() + storageThumbnail;
+        streamSession.setThumbnailUrl(urlThumbnail);
         streamRepository.save(streamSession);
 
         return new StreamPrepareResponse(rtmpUrl, generateStreamKey);
+    }
+
+    private String uploadThumbnailToR2(Long channelId, MultipartFile thumbnail) {
+        String rawKey = "vods/thumbnail/" + channelId + "/" + System.currentTimeMillis() + "_" + thumbnail.getName();
+        try {
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(R2Bucket)
+                    .key(rawKey)
+                    .contentType(thumbnail.getContentType())
+                    .build();
+
+            byte[] bytes = thumbnail.getBytes();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+
+            log.info("Uploaded: {}", thumbnail.getName());
+        } catch (Exception e) {
+            log.error("Failed to upload file: {}", thumbnail.getName(), e);
+        }
+        return rawKey;
     }
 
     @Override
@@ -78,7 +115,7 @@ public class StreamServiceImpl implements StreamService {
         }
 
         streamSession.setStatus(StreamStatus.STREAMING);
-
+        streamRepository.save(streamSession);
         return true;
     }
 
@@ -92,10 +129,9 @@ public class StreamServiceImpl implements StreamService {
             throw new RuntimeException("Stream key is not valid");
         }
 
-
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
-
+        streamRepository.save(streamSession);
         //Upload record livestream to R2
         uploadRecordLivestreamToR2(streamKey);
 
@@ -106,11 +142,10 @@ public class StreamServiceImpl implements StreamService {
         redisTemplate.opsForZSet().remove(concurrencyViewersKey);
         redisTemplate.opsForSet().remove(listBannedKey);
 
-        streamRepository.save(streamSession);
+        log.info("Success upload to R2 with streamKey: " + streamSession.getStreamKey());
     }
 
-    @Override
-    public void uploadRecordLivestreamToR2(String streamKey) {
+    private void uploadRecordLivestreamToR2(String streamKey) {
         String storageRecordPath = "/var/www/html/hls/" + streamKey;
         File folder = new File(storageRecordPath);
 
@@ -150,7 +185,7 @@ public class StreamServiceImpl implements StreamService {
         Stream stream = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
 
         if (stream.getStatus() != StreamStatus.STREAMING) {
-            throw new RuntimeException("Stream is not publish: " + streamId);
+            throw new RuntimeException("Stream is not publish yet: " + streamId);
         }
 
         Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
@@ -186,5 +221,13 @@ public class StreamServiceImpl implements StreamService {
             return new HashSet<>();
         }
         return results;
+    }
+
+    @Override
+    public List<StreamHistoryResponse> getFinishedStreamByChannelId(Long channelId) {
+        return streamRepository.findFinishedStreamByChannelId(channelId)
+                .stream()
+                .map(StreamMapper::toStreamHistoryResponse)
+                .collect(Collectors.toList());
     }
 }

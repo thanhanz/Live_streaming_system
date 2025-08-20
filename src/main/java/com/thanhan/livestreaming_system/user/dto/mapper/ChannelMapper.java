@@ -13,6 +13,7 @@ public class ChannelMapper {
     public static ChannelResponse toChannelResponse(Channel channel) {
         return new ChannelResponse(
                 channel.getId().toString(),
+                channel.getOwner().getId().toString(),
                 channel.getDisplayName(),
                 channel.getDescription(),
                 channel.getAvatarUrl(),

@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.configuration;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -9,12 +10,10 @@ import org.springframework.context.annotation.Configuration;
 
 
 @Configuration
+@RequiredArgsConstructor
 public class RabbitMQConfig {
 
-    public static final String TRANSCODE_QUEUE = "video.transcode.queue";
-    public static final String TRANSCODE_EXCHANGE = "video.transcode.exchange";
-    public static final String TRANSCODE_ROUTING_KEY = "video.transcode";
-
+    private final RabbitMQProperties properties;
 
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
@@ -29,22 +28,36 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue queue() {
-        return new Queue(TRANSCODE_QUEUE,  true);
-    }
-
-    @Bean
     public TopicExchange exchange() {
-        return new TopicExchange(TRANSCODE_EXCHANGE);
+        return new TopicExchange(properties.getExchange());
     }
 
     @Bean
-    public Binding binding(Queue queue, TopicExchange exchange) {
-
-        return BindingBuilder
-                .bind(queue)
-                .to(exchange)
-                .with(TRANSCODE_ROUTING_KEY);
+    public Queue liveQueue() {
+        return new Queue(properties.getTranscode().getLive().getQueue(),  true);
     }
+
+    @Bean
+    public Binding liveBinding(Queue liveQueue, TopicExchange exchange) {
+        return BindingBuilder
+                .bind(liveQueue)
+                .to(exchange)
+                .with(properties.getTranscode().getLive().getRoutingKey());
+    }
+
+    @Bean
+    public Queue vodQueue() {
+        return new Queue(properties.getTranscode().getVod().getQueue(),  true);
+    }
+
+    @Bean
+    public Binding vodBinding(Queue vodQueue, TopicExchange exchange) {
+        return BindingBuilder
+                .bind(vodQueue)
+                .to(exchange)
+                .with(properties.getTranscode().getVod().getRoutingKey());
+    }
+
+
 }
 

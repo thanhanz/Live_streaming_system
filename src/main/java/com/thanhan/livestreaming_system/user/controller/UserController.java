@@ -1,10 +1,14 @@
 package com.thanhan.livestreaming_system.user.controller;
 
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
+import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.mapper.UserMapper;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;
+import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.dto.request.UserCreationRequest;
+import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.FollowService;
 import com.thanhan.livestreaming_system.user.service.UserService;
 import jakarta.validation.Valid;
@@ -22,7 +26,7 @@ public class UserController {
 
     UserService userService;
     FollowService followService;
-
+    ChannelService channelService;
 
     @GetMapping("/current-user")
     public ApiResponse<UserResponse> getCurrentUser() {
@@ -31,6 +35,18 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .data(UserMapper.toUserResponse(userService.getUserByUsername(username)))
                 .status(202)
+                .build();
+    }
+
+    @GetMapping("/my-channel")
+    public ApiResponse<ChannelResponse> getMyChannel() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByUsername(username);
+        Channel c = channelService.getChannelByOwnerId(user.getId().toString());
+        return ApiResponse.<ChannelResponse>builder()
+                .status(201)
+                .message("Get my channel")
+                .data(ChannelMapper.toChannelResponse(c))
                 .build();
     }
 

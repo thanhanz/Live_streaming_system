@@ -14,7 +14,7 @@ public class VideoTranscodeConsumer {
 
     private final FFmpegService ffmpegService;
 
-    @RabbitListener(queues = "${rabbitmq.transcode.queue}")
+    @RabbitListener(queues = "${rabbitmq.transcode.vod.queue}")
     public void receiveMessage(VodTranscodeRequest request) throws IOException {
         ffmpegService.transcodeVodToHls(request);
     }

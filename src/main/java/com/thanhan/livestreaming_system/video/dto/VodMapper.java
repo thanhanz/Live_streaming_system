@@ -19,6 +19,7 @@ public class VodMapper {
                 vod.getOnlyMember(),
                 view,
                 vod.getCreatedAt(),
+                vod.getVideoUrl(),
                 channel
         );
     }

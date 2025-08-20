@@ -45,7 +45,6 @@ services:
   #Queue
   rabbitmq:
     image: rabbitmq:4-management
-    container_name: rabbitmq
     ports:
       - "5672:5672" #Port connect to Spring
       - "15672:15672" #Port admin manage localhost:15672
@@ -55,7 +54,6 @@ services:
   #Cache
   redis:
     image: redis:latest
-    container_name: redis
     ports:
       - "6379:6379"
     volumes:

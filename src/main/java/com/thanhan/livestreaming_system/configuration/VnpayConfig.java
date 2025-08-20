@@ -16,7 +16,7 @@ import java.util.*;
 public class VnpayConfig {
 
     @Getter
-    private String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html ";
+    private String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
     @Value("${vnpay.return-url}")
     private String vnp_ReturnUrl;

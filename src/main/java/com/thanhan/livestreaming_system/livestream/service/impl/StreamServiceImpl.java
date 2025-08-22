@@ -121,6 +121,7 @@ public class StreamServiceImpl implements StreamService {
 
 
     @Override
+    @Transactional
     public void finish(String streamKey) {
         Stream streamSession = streamRepository.findByStreamKey(streamKey);
 
@@ -132,15 +133,18 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
         streamRepository.save(streamSession);
-        //Upload record livestream to R2
-        uploadRecordLivestreamToR2(streamKey);
+
+//        uploadRecordLivestreamToR2(streamKey);
 
         String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamSession.getId().toString());
         String listBannedKey = ChatUtils.bannedChatKey(streamSession.getId().toString());
 
-        redisTemplate.opsForSet().remove("active_streams", streamSession.getId());
-        redisTemplate.opsForZSet().remove(concurrencyViewersKey);
-        redisTemplate.opsForSet().remove(listBannedKey);
+        if (redisTemplate.hasKey(concurrencyViewersKey)) {
+            redisTemplate.opsForZSet().remove(concurrencyViewersKey);
+        }
+
+        if (redisTemplate.hasKey(listBannedKey))
+            redisTemplate.opsForSet().remove(listBannedKey);
 
         log.info("Success upload to R2 with streamKey: " + streamSession.getStreamKey());
     }
@@ -153,7 +157,7 @@ public class StreamServiceImpl implements StreamService {
             throw new RuntimeException("Folder not found in: " + storageRecordPath);
         }
 
-        File[] files = folder.listFiles((dir, name) -> name.matches("recording_\\d{3}\\.mp4"));
+        File[] files = folder.listFiles((dir, name) -> name.matches("recording.mp4"));
 
         if (files == null || files.length == 0) {
             throw new RuntimeException("No .mp4 recordings found for streamKey: " + streamKey);
@@ -178,6 +182,7 @@ public class StreamServiceImpl implements StreamService {
             }
         }
     }
+
 
     @Override
     @Transactional

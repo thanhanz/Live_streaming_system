@@ -16,7 +16,6 @@ public class StreamTranscodeConsumer {
     @RabbitListener(queues = "${rabbitmq.transcode.live.queue}")
     public void receiveLiveMessage(String streamKey) throws IOException {
         ffmpegService.transcodeToHls(streamKey);
+//        ffmpegService.recordingVideo(streamKey);
     }
-
-
 }

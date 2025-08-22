@@ -17,7 +17,7 @@ public class StreamTranscodeProducer {
     @Value("${rabbitmq.exchange}")
     private String exchange;
 
-    @Value("${rabbitmq.transcode.vod.routing-key}")
+    @Value("${rabbitmq.transcode.live.routing-key}")
     private String routingKey;
 
     public void sendMessage(String streamKey) throws IOException {

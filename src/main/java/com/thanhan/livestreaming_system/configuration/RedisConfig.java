@@ -44,30 +44,29 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, Long> redisLongTemplate(RedisConnectionFactory connectionFactory) {
+    public RedisTemplate<String, Long> longRedisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Long> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new GenericToStringSerializer<>(Long.class));
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new GenericToStringSerializer<>(Long.class));
+
+        template.afterPropertiesSet();
         return template;
     }
+    @Bean
+    public RedisTemplate<String, Object> objRedisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new StringRedisSerializer());
 
-//    @Bean
-//    public ObjectMapper objectMapper() {
-//        ObjectMapper mapper = new ObjectMapper();
-//
-//        mapper.registerModule(new JavaTimeModule());
-//
-//        // Định dạng date-time dưới dạng ISO
-//        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-//
-//        // Cấu hình khác cho ObjectMapper
-//        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-//        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-//
-//        return mapper;
-//    }
-
+        template.afterPropertiesSet();
+        return template;
+    }
 }
 
 

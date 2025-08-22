@@ -27,8 +27,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @Service
@@ -79,48 +81,53 @@ public class FFmpegServiceImpl implements FFmpegService {
 
         String hlsOutput = outputDir + "/%v/playlist.m3u8";
         String segmentPattern = outputDir + "/%v/segment_%03d.ts";
-        String record_livestream = outputDir + "/recording_%03d.mp4";
-        int recordingTime = 1800; //seconds = 30'
+        String record_livestream = outputDir + "/recording.mp4";
+
+        List<String> recordCommand = new ArrayList<>(List.of(
+                "ffmpeg",
+                "-i", inputUrl,
+                "-y",
+                "-c:v", "libx264", "-preset", "medium", "-crf", "23",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart+frag_keyframe+empty_moov",
+                "-f", "mp4",
+                record_livestream
+        ));
 
         List<String> liveCommand = new ArrayList<> (List.of(
                 "ffmpeg",
                 "-i", inputUrl,
                 "-y",
-
-                "-c:v", "copy", "-c:a", "copy", "-f", "segment",
-                "-segment_time", String.valueOf(recordingTime),
-                "-segment_format", "mp4",
-                record_livestream,
-
                 "-filter_complex",
-                "[0:v]split=3[v360][v720][v1080];" +
+//                "[0:v]split=3[v360][v720][v1080];" +
+                "[0:v]split=2[v360][v720];" +
                         "[v360]scale=640:360[v360_scaled];" +
-                        "[v720]scale=1280:720[v720_scaled];" +
-                        "[v1080]scale=1920:1080[v1080_scaled]",
+                        "[v720]scale=1280:720[v720_scaled]",
+//                        "[v1080]scale=1920:1080[v1080_scaled]",
 
-                "-map", "[v360_scaled]", "-map", "[v720_scaled]", "-map", "[v1080_scaled]",
-                "-map", "0:a", "-map", "0:a", "-map", "0:a",
+                "-map", "[v360_scaled]", "-map", "[v720_scaled]",
+//                "-map", "[v1080_scaled]",
+                "-map", "0:a", "-map", "0:a",
+//                "-map", "0:a",
 
                 // 360p
                 "-c:v:0", "libx264", "-preset", "veryfast", "-profile:v", "main", "-level", "3.0",
                 "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
                 "-b:v:0", "800k", "-maxrate:0", "1000k", "-bufsize:0", "1600k",
-                "-s:v:0", "640x360",
                 "-c:a:0", "aac", "-b:a:0", "96k", "-ac:0", "2",
 
                 // 720p
                 "-c:v:1", "libx264", "-preset", "veryfast", "-profile:v", "main", "-level", "3.1",
                 "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
                 "-b:v:1", "2000k", "-maxrate:1", "3000k", "-bufsize:1", "5000k",
-                "-s:v:1", "1280x720",
                 "-c:a:1", "aac", "-b:a:1", "128k", "-ac:1", "2",
 
-                // 1080p
-                "-c:v:2", "libx264", "-preset", "veryfast", "-profile:v", "high", "-level", "4.0",
-                "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
-                "-b:v:2", "5000k", "-maxrate:2", "6000k", "-bufsize:2", "10000k",
-                "-s:v:2", "1920x1080",
-                "-c:a:2", "aac", "-b:a:2", "160k", "-ac:2", "2",
+//                // 1080p
+//                "-c:v:2", "libx264", "-preset", "veryfast", "-profile:v", "high", "-level", "4.0",
+//                "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
+//                "-b:v:2", "5000k", "-maxrate:2", "6000k", "-bufsize:2", "10000k",
+//                "-s:v:2", "1920x1080",
+//                "-c:a:2", "aac", "-b:a:2", "160k", "-ac:2", "2",
 
                 "-f", "hls",
                 "-hls_time", "3",
@@ -128,16 +135,36 @@ public class FFmpegServiceImpl implements FFmpegService {
                 "-hls_flags", "delete_segments+independent_segments",
                 "-master_pl_name", "master.m3u8",
                 "-hls_segment_filename", segmentPattern,
-                "-var_stream_map", "v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p",
+                "-var_stream_map", "v:0,a:0,name:360p v:1,a:1,name:720p ",
+//                        "v:2,a:2,name:1080p",
                 hlsOutput
         ));
 
         ProcessBuilder livePb = new ProcessBuilder(liveCommand);
+        ProcessBuilder recordPb = new ProcessBuilder(recordCommand);
+
         livePb.redirectErrorStream(true);
+        recordPb.redirectErrorStream(true);
 
         try {
-            livePb.start();
-        } catch (IOException e) {
+            Process processLive = livePb.start();
+            Process processRecord = recordPb.start();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(processLive.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.info("[FFmpeg]: " + line);
+                }
+            }
+
+            int exitCodeLive = processLive.waitFor();
+            int exitCodeRecord = processRecord.waitFor();
+            if (exitCodeLive == 0 || exitCodeRecord == 0) {
+                log.info("FFmpeg finished recording and transcoding successfully for stream: " + streamKey);
+            } else {
+                log.error("FFmpeg exited with code " + exitCodeLive);
+            }
+        } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Failed to livestream using FFmpeg: ", e);
         }
     }

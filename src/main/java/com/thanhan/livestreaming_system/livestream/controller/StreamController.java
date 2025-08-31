@@ -2,6 +2,7 @@ package com.thanhan.livestreaming_system.livestream.controller;
 
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
@@ -70,6 +71,16 @@ public class StreamController {
                 .data(streamService.prepare(new StreamPrepareRequest(channelId, title, description), thumbnail))
                 .status(200)
                 .message("Preparing you streaming")
+                .build();
+    }
+
+    @GetMapping("/channel/{channelId}/streaming")
+    public ApiResponse<StreamCardResponse> getCurrentLiveStreaming(@PathVariable("channelId") Long channelId) {
+
+        return ApiResponse.<StreamCardResponse>builder()
+                .data(streamService.getCurrentLiveStreaming(channelId))
+                .message("Current live streaming")
+                .status(200)
                 .build();
     }
 

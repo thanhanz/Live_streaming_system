@@ -18,4 +18,8 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
                     "ORDER BY s.created_at DESC", nativeQuery = true)
     List<Stream> findFinishedStreamByChannelId(@Param("channelId") Long channelId);
 
+    @Query(value = "SELECT * FROM stream_sessions s " +
+            "WHERE s.channel_id = :channelId AND s.status = 'STREAMING' " +
+            "ORDER BY s.id DESC LIMIT 1", nativeQuery = true)
+    Stream getCurrentLiveStreaming(@Param("channelId") Long channelId);
 }

@@ -9,8 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/channels/membership-packages")
+@RequestMapping("/api/membership-packages")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MembershipPackageController {
@@ -19,14 +21,23 @@ public class MembershipPackageController {
 
     @GetMapping("/{id}")
     public ApiResponse<MembPackageResponse> getPackageById(@PathVariable("id") String packageId) {
-
         MembPackageResponse result = membershipPackageService.getPackage(Long.valueOf(packageId));
-
         return ApiResponse.<MembPackageResponse>builder()
                 .message("Get package success with id: " + result.id())
                 .data(result)
                 .status(201)
                 .build();
+    }
+
+    @GetMapping("/channel/{channelId}")
+    public ApiResponse<List<MembPackageResponse>> getPackageByChannelId(@PathVariable("channelId") String channelId) {
+        List<MembPackageResponse> result = membershipPackageService.getListMembershipPackagesByChannelId(Long.valueOf(channelId));
+        return ApiResponse.<List<MembPackageResponse>>builder()
+                .message("Get package success with channelId: " + channelId)
+                .data(result)
+                .status(200)
+                .build();
+
     }
 
     @PostMapping("/")

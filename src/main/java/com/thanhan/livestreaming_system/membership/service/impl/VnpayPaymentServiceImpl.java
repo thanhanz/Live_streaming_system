@@ -83,7 +83,6 @@ public class VnpayPaymentServiceImpl implements PaymentService {
         if (!verifyIpn(request)) {
             throw new VnpPaymentException(VnpErrorCode.SIGNATURE_FAILED);
         }
-
         String transactionId = request.get("vnp_TxnRef");
         PaymentTransaction transaction = paymentTransactionRepository.getTransactionByTransactionId(transactionId);
 

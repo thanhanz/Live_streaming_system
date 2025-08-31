@@ -19,6 +19,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
@@ -73,10 +75,22 @@ public class MembershipPackageServiceImpl implements MembershipPackageService {
         return MembershipPackageMapper.toResponse(membershipPackage);
     }
 
+
     @Override
     public MembershipPackage getPackageById(Long packageId) {
         return membershipPackageRepository.findById(packageId)
                 .orElseThrow(() -> new EntityNotFoundException("Membership package not found"));
+    }
 
+    @Override
+    public List<MembPackageResponse> getListMembershipPackagesByChannelId(Long channelId) {
+        return membershipPackageRepository.getListMembershipPackagesByChannelId(channelId)
+                .stream()
+                .map(MembershipPackageMapper::toResponse).toList();
+    }
+
+    @Override
+    public MembPackageResponse getPackageByChannelId(Long channelId) {
+        return MembershipPackageMapper.toResponse(membershipPackageRepository.findByChannelId(channelId));
     }
 }

@@ -2,6 +2,7 @@ package com.thanhan.livestreaming_system.user.dto.mapper;
 
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelCardResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
@@ -30,6 +31,10 @@ public class ChannelMapper {
                 channel.getAvatarUrl(),
                 totalFollowers
         );
+    }
+
+    public static ChannelCardResponse toChannelCardResponse(Channel channel) {
+        return new ChannelCardResponse(channel.getId().toString(), channel.getDisplayName(), channel.getAvatarUrl());
     }
 
 

@@ -4,6 +4,8 @@ import com.thanhan.livestreaming_system.membership.dto.request.MembPackageCreate
 import com.thanhan.livestreaming_system.membership.dto.response.MembPackageResponse;
 import com.thanhan.livestreaming_system.membership.entity.MembershipPackage;
 
+import java.util.List;
+
 public interface MembershipPackageService {
     //CRUD
     MembPackageResponse createMembershipPackage(MembPackageCreateRequest request);
@@ -11,5 +13,6 @@ public interface MembershipPackageService {
     void deletePackage(Long packageId);
     MembPackageResponse getPackage(Long packageId);
     MembershipPackage getPackageById(Long packageId);
-
+    List<MembPackageResponse> getListMembershipPackagesByChannelId(Long channelId);
+    MembPackageResponse getPackageByChannelId(Long channelId);
 }

@@ -4,6 +4,7 @@ import com.thanhan.livestreaming_system.chat.utils.ChatUtils;
 import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
@@ -43,6 +44,7 @@ public class StreamServiceImpl implements StreamService {
     final StreamRepository streamRepository;
     final ChannelService channelService;
     final RedisTemplate<String, String> redisTemplate;
+    final RedisTemplate<String, Object> objectRedisTemplate;
     final S3Client s3Client;
 
     @Value("${cloudflare.r2.bucket}")
@@ -234,5 +236,26 @@ public class StreamServiceImpl implements StreamService {
                 .stream()
                 .map(StreamMapper::toStreamHistoryResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public StreamCardResponse getCurrentLiveStreaming(Long channelId) {
+        String currentLivestreamCache = StreamCacheKey.isLivestreamingChannels();
+        boolean isStreaming = Boolean.TRUE.equals(objectRedisTemplate.opsForSet().isMember(currentLivestreamCache, channelId.toString()));
+
+        log.info("Channel [{}] streaming: {}", channelId, isStreaming);
+
+        if (!isStreaming) {
+            throw new RuntimeException("Current livestreaming channel is not streaming: " + channelId);
+        }
+
+        Stream stream = streamRepository.getCurrentLiveStreaming(channelId);
+        if (stream == null) {
+            throw new RuntimeException("Live stream not found in channel: " + channelId);
+        }
+
+        Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+
+        return StreamMapper.toStreamCardResponse(stream, currentViewer);
     }
 }

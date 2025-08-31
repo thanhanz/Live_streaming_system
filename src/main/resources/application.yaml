@@ -73,4 +73,4 @@ vnpay:
   version: 2.1.0
   command: pay
   otherType: other
-  return-url:  https://magical-minnow-openly.ngrok-free.app/livestream/api/payment/payment_callback
+  return-url:  http://localhost:3000/channels/1

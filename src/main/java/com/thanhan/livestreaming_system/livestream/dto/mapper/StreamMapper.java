@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.livestream.dto.mapper;
 
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
@@ -20,6 +21,17 @@ public class StreamMapper {
                 stream.getStreamKey(),
                 currentViewer,
                 ChannelMapper.toChannelCacheResponse(stream.getChannel(), totalFollowers)
+        );
+    }
+
+    public static StreamCardResponse toStreamCardResponse(Stream stream, Integer currentViewer) {
+        return new StreamCardResponse(
+                stream.getId().toString(),
+                stream.getTitle(),
+                stream.getThumbnailUrl(),
+                stream.getStatus().name(),
+                currentViewer,
+                ChannelMapper.toChannelCardResponse(stream.getChannel())
         );
     }
 

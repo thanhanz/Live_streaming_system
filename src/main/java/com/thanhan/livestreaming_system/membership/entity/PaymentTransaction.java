@@ -25,7 +25,7 @@ public class PaymentTransaction {
 
     private String gateway;
 
-    @Column(name = "transaction_id", unique = true) // Thường nên unique
+    @Column(name = "transaction_id", unique = true)
     private String transactionId;
 
     @Enumerated(EnumType.STRING)

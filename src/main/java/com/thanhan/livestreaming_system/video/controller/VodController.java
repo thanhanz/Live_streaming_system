@@ -43,7 +43,7 @@ public class VodController {
     public ApiResponse<VodResponse> getVodById(@PathVariable Long id) throws AppException {
         return ApiResponse.<VodResponse>builder()
                 .status(200)
-                .data(vodService.getVodById(id))
+                .data(vodService.getVodResById(id))
                 .message("Get video id: " + id)
                 .build();
     }

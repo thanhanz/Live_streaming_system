@@ -16,7 +16,8 @@ public interface VodService {
     PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request);
     String uploadMetadataForVod(VodCreationRequest request, MultipartFile thumbnail);
     void deleteVod(Long id);
-    VodResponse getVodById(Long id);
+    VodResponse getVodResById(Long id);
+    Vod getVodById(Long id);
     VodResponse updateVod(Long id, VodUpdationRequest request);
     Vod updateVodUrl(String url, Long id);
     void hideVod(Long vodId);

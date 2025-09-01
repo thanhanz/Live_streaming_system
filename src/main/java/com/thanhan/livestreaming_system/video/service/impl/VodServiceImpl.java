@@ -129,7 +129,7 @@ public class VodServiceImpl implements VodService {
     }
 
     @Override
-    public VodResponse getVodById(Long id) {
+    public VodResponse getVodResById(Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
         ChannelCacheResponse response = getChannelCache(vod);
         String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
@@ -137,6 +137,11 @@ public class VodServiceImpl implements VodService {
         Long view = getCurrentView(vod, pendingViewKey);
 
         return VodMapper.toVodResponse(vod, view, response);
+    }
+
+    @Override
+    public Vod getVodById(Long id) {
+        return vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
     }
 
     @Override

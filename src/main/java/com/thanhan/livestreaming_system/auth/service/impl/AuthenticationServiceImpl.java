@@ -79,12 +79,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
-        var token = request.getToken();
+        var accessToken = request.getToken();
 
-        boolean isLogout = redisService.isInBlackList(token);
+        boolean isLogout = redisService.isInBlackList(accessToken);
 
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
-        SignedJWT signedJWT = SignedJWT.parse(token);
+        SignedJWT signedJWT = SignedJWT.parse(accessToken);
 
         Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
 

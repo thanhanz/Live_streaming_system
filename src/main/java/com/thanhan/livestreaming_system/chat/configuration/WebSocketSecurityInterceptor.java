@@ -1,9 +1,12 @@
 package com.thanhan.livestreaming_system.chat.configuration;
 
+import com.thanhan.livestreaming_system.auth.service.JwtService;
+import com.thanhan.livestreaming_system.auth.service.RedisService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -26,7 +29,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WebSocketSecurityInterceptor implements ChannelInterceptor {
 
-    JwtDecoder jwtDecoder;
+    private final JwtService jwtService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -38,17 +41,9 @@ public class WebSocketSecurityInterceptor implements ChannelInterceptor {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 var token = authHeader.substring(7);
                     try {
-                        Jwt jwt = jwtDecoder.decode(token);
-
-                        String username = jwt.getSubject();
-                        Authentication auth = new UsernamePasswordAuthenticationToken(username,
-                                null,
-                                List.of()); //Authories trong day
-
+                        Authentication auth = jwtService.authenticate(token);
                         accessor.setUser(auth);
                         SecurityContextHolder.getContext().setAuthentication(auth);
-
-
                     } catch (JwtException e) {
                         throw new JwtException("Invalid JWT websocket token", e);
                 }

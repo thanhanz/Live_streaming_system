@@ -1,32 +1,35 @@
-package com.thanhan.livestreaming_system.configuration;
+package com.thanhan.livestreaming_system.configuration.auth;
 
+import com.thanhan.livestreaming_system.auth.service.RedisService;
+import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.Token;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
-import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.springframework.http.HttpMethod.*;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = { "/auth/log-in",
@@ -34,23 +37,23 @@ public class SecurityConfig {
                                                 "/api/users/register",
                                                 "/auth/refresh",
                                                 "/auth/logout",
-                                                "/api/stream/**",
+//                                                "/api/stream/**",
                                                 "/watch", //Test in thymeleaf
                                                 "/api/vods/**"
     };
-
     @Value("${jwt.signer-key}")
     private String SIGNER_KEY;
+    private final RedisService redisService;
 
     @Bean
-    public SecurityFilterChain publicEndpoints(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
                                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()
-
                                         .anyRequest().authenticated());
+
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()))
                                 //Covert "SCOPE_... to ROLE_..."
@@ -58,7 +61,9 @@ public class SecurityConfig {
 //                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
 
-        //Cai dat CORS de co the ket noi den Browser
+        TokenBlackListFilter tokenBlacklistFilter = new TokenBlackListFilter(redisService);
+        http.addFilterBefore(tokenBlacklistFilter, BearerTokenAuthenticationFilter.class);
+
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         //Tat csrf chua can` thiet dung`

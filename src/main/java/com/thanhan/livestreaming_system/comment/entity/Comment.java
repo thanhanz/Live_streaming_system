@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.comment.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.video.entity.Vod;
@@ -9,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -36,7 +38,6 @@ public class Comment {
     private Boolean active;
 
     @Column(name = "created_at")
-    @Temporal(TemporalType.TIMESTAMP)
     private Instant createdAt;
 
     @JoinColumn(name = "parent_comment_id", referencedColumnName = "id")
@@ -47,15 +48,15 @@ public class Comment {
     @JoinColumn(name = "vod_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JsonIgnore
     private Vod vod;
 
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JsonIgnore
     private User user;
-
 
     @JsonManagedReference
     @OneToMany(mappedBy = "parentCommentId", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Comment> replies;
-
 }

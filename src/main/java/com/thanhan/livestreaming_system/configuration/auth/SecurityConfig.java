@@ -40,6 +40,7 @@ public class SecurityConfig {
 //                                                "/api/stream/**",
                                                 "/watch", //Test in thymeleaf
                                                 "/api/vods/**"
+
     };
     @Value("${jwt.signer-key}")
     private String SIGNER_KEY;
@@ -49,6 +50,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
+                                        .requestMatchers(GET, "/api/comments/**").permitAll()
                                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()

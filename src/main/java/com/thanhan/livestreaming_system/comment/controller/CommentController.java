@@ -6,7 +6,9 @@ import com.thanhan.livestreaming_system.comment.dto.response.CommentResponse;
 import com.thanhan.livestreaming_system.comment.entity.Comment;
 import com.thanhan.livestreaming_system.comment.service.CommentService;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
+import com.thanhan.livestreaming_system.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,7 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final UserService userService;
 
     @GetMapping("/vod/{vodId}/root_comments")
     public ApiResponse<List<CommentResponse>> getRootComments(@PathVariable("vodId") Long vodId) {
@@ -57,7 +60,9 @@ public class CommentController {
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteComment(@PathVariable("id") Long commentId) {
-        commentService.deleteComment(commentId);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String userId = userService.getUserIdByUsername(username);
+        commentService.deleteComment(commentId, userId);
         return ApiResponse.success(200, "Delete comment success");
     }
 

@@ -14,6 +14,7 @@ import com.thanhan.livestreaming_system.video.entity.Vod;
 import com.thanhan.livestreaming_system.video.service.VodService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
@@ -75,14 +77,16 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public void deleteComment(Long commentId) {
-        User user = userService.getUserByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+    public void deleteComment(Long commentId, String userId) {
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
 
-        Comment comment = getCommentById(commentId);
+        boolean isAuthor = comment.getUser().getId().toString().equals(userId);
+        boolean isOwnerVideo = comment.getVod().getChannel().getOwner().getId().toString().equals(userId);
 
-        if (user.getId().equals(comment.getUser().getId()) || user.getId().equals(comment.getVod().getChannel().getOwner().getId()))
-            commentRepository.delete(comment);
-        else throw new AppException(ErrorCode.FORBIDDEN);
+        if (!isAuthor && !isOwnerVideo) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+        commentRepository.deleteById(commentId);
     }
 
     @Override

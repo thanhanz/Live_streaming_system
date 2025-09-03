@@ -1,6 +1,8 @@
 package com.thanhan.livestreaming_system.video.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.thanhan.livestreaming_system.comment.entity.Comment;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Instant;
+import java.util.List;
 
 @Table(name = "Vods")
 @Entity
@@ -57,4 +60,8 @@ public class Vod {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     @UpdateTimestamp
     private Instant updatedAt;
+
+    @OneToMany(mappedBy = "vod", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Comment> comments;
 }

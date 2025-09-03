@@ -12,7 +12,7 @@ public interface CommentService {
     CommentResponse updateComment(Long commentId,  String content);
     List<CommentResponse> getRootComments(Long channelId);
     List<CommentResponse> getRepliesComments(Long parentCommentId);
-    void deleteComment(Long commentId);
+    void deleteComment(Long commentId, String userId);
     Comment getCommentById(Long commentId);
     Integer countComments(Long vodId);
 }

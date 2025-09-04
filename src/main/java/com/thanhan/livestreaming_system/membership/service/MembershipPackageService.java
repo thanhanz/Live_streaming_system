@@ -14,5 +14,5 @@ public interface MembershipPackageService {
     MembPackageResponse getPackage(Long packageId);
     MembershipPackage getPackageById(Long packageId);
     List<MembPackageResponse> getListMembershipPackagesByChannelId(Long channelId);
-    MembPackageResponse getPackageByChannelId(Long channelId);
+    List<MembPackageResponse> getPackageByChannelId(Long channelId);
 }

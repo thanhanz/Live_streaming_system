@@ -12,5 +12,5 @@ import java.util.Map;
 public interface PaymentService {
      String createPaymentUrl(HttpServletRequest request, User user);
      //Using IPN Url
-     PaymentTransactionResponse handleCallbackPaymentHttps(Map<String, String> request, User user);
+     PaymentTransactionResponse handleCallbackPaymentHttps(Map<String, String> request);
 }

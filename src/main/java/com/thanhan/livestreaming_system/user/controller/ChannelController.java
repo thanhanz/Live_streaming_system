@@ -8,10 +8,12 @@ import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.FollowService;
+import jakarta.annotation.Nullable;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -25,11 +27,14 @@ public class ChannelController {
 
 
     @PostMapping
-    public ApiResponse<ChannelResponse> createChannel(@RequestBody ChannelCreationRequest request) throws IllegalAccessException {
+    public ApiResponse<ChannelResponse> createChannel(@RequestParam("avatar") MultipartFile avatar,
+                                                      @RequestParam(value = "banner", required = false) MultipartFile banner ,
+                                                      @RequestParam("displayName") String displayName,
+                                                      @RequestParam("description") String description) throws IllegalAccessException {
         return ApiResponse.<ChannelResponse>builder()
                 .status(200)
                 .message("Channel created successfully!")
-                .data(channelService.create(request))
+                .data(channelService.create(displayName, description, avatar, banner))
                 .build();
     }
 

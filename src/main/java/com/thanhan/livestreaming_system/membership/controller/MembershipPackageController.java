@@ -40,7 +40,7 @@ public class MembershipPackageController {
 
     }
 
-    @PostMapping("/")
+    @PostMapping
     public ApiResponse<MembPackageResponse> createPackage(@RequestBody MembPackageCreateRequest request) {
         MembPackageResponse result = membershipPackageService.createMembershipPackage(request);
         return ApiResponse.<MembPackageResponse>builder()

@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.user.controller;
 
+import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.mapper.UserMapper;
@@ -15,6 +16,8 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,20 +42,32 @@ public class UserController {
     }
 
     @GetMapping("/my-channel")
-    public ApiResponse<ChannelResponse> getMyChannel() {
+    public ResponseEntity<ApiResponse<ChannelResponse>> getMyChannel() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userService.getUserByUsername(username);
         Channel c = channelService.getChannelByOwnerId(user.getId().toString());
-        return ApiResponse.<ChannelResponse>builder()
-                .status(201)
-                .message("Get my channel")
-                .data(ChannelMapper.toChannelResponse(c))
-                .build();
+
+        if (c == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.<ChannelResponse>builder()
+                            .status(404)
+                            .message("Channel not found!")
+                            .data(null)
+                            .build());
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.<ChannelResponse>builder()
+                        .status(200)
+                        .message("Get my channel")
+                        .data(ChannelMapper.toChannelResponse(c))
+                        .build()
+        );
     }
+
 
     @PostMapping("/register")
     public ApiResponse<UserResponse> register(@RequestBody @Valid UserCreationRequest request) {
-
         return ApiResponse.<UserResponse>builder()
                 .message("SUCCESS")
                 .data(userService.register(request))
@@ -62,10 +77,8 @@ public class UserController {
 
     @PostMapping("/channel/{id}/follow")
     public ApiResponse<Void> follow(@PathVariable(name = "id") String channelId) {
-
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User u = userService.getUserByUsername(username);
-
         followService.follow(u.getId().toString(), channelId);
         return ApiResponse.<Void>builder()
                 .message("Follow successfully!").status(200).build();

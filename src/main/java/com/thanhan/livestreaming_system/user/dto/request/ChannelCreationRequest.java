@@ -4,7 +4,6 @@ import jakarta.annotation.Nullable;
 
 public record ChannelCreationRequest(
         String displayName,
-        String description,
-        @Nullable String avatar,
-        @Nullable String bannerUrl) {
+        String description
+        ) {
 }

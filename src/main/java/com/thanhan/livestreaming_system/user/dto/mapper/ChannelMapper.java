@@ -39,13 +39,11 @@ public class ChannelMapper {
 
 
 
-    public static Channel toChannel(ChannelCreationRequest request, User owner) {
+    public static Channel toChannel(String displayName, String description, User owner) {
         Channel channel = new Channel();
         channel.setOwner(owner);
-        channel.setAvatarUrl(request.avatar());
-        channel.setBannerUrl(request.bannerUrl());
-        channel.setDescription(request.description());
-        channel.setDisplayName(request.displayName());
+        channel.setDescription(description);
+        channel.setDisplayName(displayName);
         channel.setCreatedAt(Instant.now());
         channel.setUpdatedAt(Instant.now());
 

@@ -13,7 +13,9 @@ public interface UserMembershipRepository extends JpaRepository<UserMembership, 
             "   SELECT 1 FROM user_membership um " +
             "   WHERE um.user_id = :userId " +
             "     AND um.membership_package_id = :membershipId " +
-            "     AND um.end_at >= CURRENT_TIMESTAMP" + ")",
-            nativeQuery = true)
-    Optional<Integer> checkMembership(@Param("userId") UUID userId, @Param("membershipId") Long membershipId);
+            "     AND um.end_at >= CURRENT_TIMESTAMP" +
+            " ORDER BY um.end_at DESC\n" +
+            "    LIMIT 1" +
+            ")", nativeQuery = true)
+    Boolean checkMembership(@Param("userId") UUID userId, @Param("membershipId") Long membershipId);
 }

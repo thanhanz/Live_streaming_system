@@ -51,6 +51,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(request ->
                                 request .requestMatchers(OPTIONS,"/**").permitAll()
                                         .requestMatchers(GET, "/api/comments/**").permitAll()
+                                        .requestMatchers("/api/payment/**").permitAll()
                                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()

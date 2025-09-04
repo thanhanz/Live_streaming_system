@@ -90,7 +90,7 @@ public class MembershipPackageServiceImpl implements MembershipPackageService {
     }
 
     @Override
-    public MembPackageResponse getPackageByChannelId(Long channelId) {
-        return MembershipPackageMapper.toResponse(membershipPackageRepository.findByChannelId(channelId));
+    public List<MembPackageResponse> getPackageByChannelId(Long channelId) {
+        return membershipPackageRepository.findByChannelId(channelId).stream().map(MembershipPackageMapper::toResponse).toList();
     }
 }

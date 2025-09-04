@@ -13,6 +13,8 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserMembershipServiceImpl implements UserMembershipService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserMembershipServiceImpl.class);
     UserMembershipRepository userMembershipRepository;
     MembershipPackageService membershipPackageService;
 
@@ -42,9 +45,16 @@ public class UserMembershipServiceImpl implements UserMembershipService {
 
     @Override
     public Boolean checkMembership(Long channelId, UUID userId) {
-        MembPackageResponse pkg = membershipPackageService.getPackageByChannelId(channelId);
-        if (pkg != null)
-            return userMembershipRepository.checkMembership(userId, pkg.id()).isPresent();
-        else return true;
+        List<MembPackageResponse> pkgs = membershipPackageService.getPackageByChannelId(channelId);
+
+        if (pkgs == null || pkgs.size() == 0) {
+            return false;
+        }
+
+        for (MembPackageResponse pkg : pkgs) {
+            if (userMembershipRepository.checkMembership(userId, pkg.id()))
+                return true;
+        }
+        return false;
     }
 }

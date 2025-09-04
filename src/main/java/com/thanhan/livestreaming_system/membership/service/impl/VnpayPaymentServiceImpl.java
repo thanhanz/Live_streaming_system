@@ -52,7 +52,7 @@ public class VnpayPaymentServiceImpl implements PaymentService {
         long amount = mpk.getPrice() * 100L;
 
         String bankCode = request.getParameter("bankCode");
-        Map<String, String> vnpParamsMap = vnpayConfig.getVNPayConfig();
+        Map<String, String> vnpParamsMap = vnpayConfig.getVNPayConfig(mpk.getId().toString(), user.getUsername());
         vnpParamsMap.put("vnp_Amount", String.valueOf(amount));
         if (bankCode != null && !bankCode.isEmpty()) {
             vnpParamsMap.put("vnp_BankCode", bankCode);
@@ -79,7 +79,7 @@ public class VnpayPaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    public PaymentTransactionResponse handleCallbackPaymentHttps(Map<String, String> request, User user) {
+    public PaymentTransactionResponse handleCallbackPaymentHttps(Map<String, String> request) {
         if (!verifyIpn(request)) {
             throw new VnpPaymentException(VnpErrorCode.SIGNATURE_FAILED);
         }
@@ -94,6 +94,7 @@ public class VnpayPaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Transaction already success!");
         }
 
+
         String responseCode = request.get("vnp_ResponseCode");
 
         if (!"00".equals(responseCode)) {
@@ -102,6 +103,7 @@ public class VnpayPaymentServiceImpl implements PaymentService {
         } else {
             transaction.setStatus(TransactionStatus.SUCCESS);
             PaymentTransaction savedTransaction = paymentTransactionRepository.save(transaction);
+            User user = savedTransaction.getUser();
             userMembershipService.createMembership(user, savedTransaction.getMembershipPackage());
             return PaymentTransactionMapper.toResponse(savedTransaction);
         }

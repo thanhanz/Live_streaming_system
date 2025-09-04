@@ -32,18 +32,15 @@ public class UserServiceImpl implements UserService {
     public UserResponse register(UserCreationRequest request) {
 
         if(userRepository.existsByUsername(request.username()))
-            throw new RuntimeException("KAKAKAK");
+            throw new AppException(ErrorCode.USER_EXISTED);
+        if (userRepository.existsByEmail(request.email()))
+            throw new RuntimeException("Email has used by others users");
 
         User user = UserMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        try {
-            user = userRepository.save(user);
-        } catch (DataIntegrityViolationException e) {
+        user = userRepository.save(user);
 
-            log.error(e.getMessage());
-            throw new AppException(ErrorCode.USER_EXISTED);
-        }
 
         return UserMapper.toUserResponse(user);
     }

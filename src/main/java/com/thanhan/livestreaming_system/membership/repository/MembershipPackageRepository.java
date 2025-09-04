@@ -12,5 +12,5 @@ public interface MembershipPackageRepository extends JpaRepository<MembershipPac
     @Query(value = "SELECT * FROM membership_package pkg WHERE pkg.channel_id = :channelId", nativeQuery = true)
     List<MembershipPackage> getListMembershipPackagesByChannelId(@Param("channelId") Long channelId);
 
-    MembershipPackage findByChannelId(@Param("channelId") Long channelId);
+    List<MembershipPackage> findByChannelId(@Param("channelId") Long channelId);
 }

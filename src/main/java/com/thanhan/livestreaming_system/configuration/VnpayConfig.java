@@ -38,13 +38,13 @@ public class VnpayConfig {
     private String orderType;
 
 
-    public Map<String, String> getVNPayConfig() {
+    public Map<String, String> getVNPayConfig(String packageId, String username) {
         Map<String, String> vnpParamsMap = new HashMap<>();
         vnpParamsMap.put("vnp_Version", this.vnp_Version);
         vnpParamsMap.put("vnp_Command", this.vnp_Command);
         vnpParamsMap.put("vnp_TmnCode", this.vnp_TmnCode);
         vnpParamsMap.put("vnp_CurrCode", "VND");
-        vnpParamsMap.put("vnp_TxnRef",  VnpayUtil.getRandomNumber(8));
+        vnpParamsMap.put("vnp_TxnRef",   VnpayUtil.getRandomNumber(8) + ":" + packageId + ":" + username);
         vnpParamsMap.put("vnp_OrderInfo", "Thanh toán hóa đơn:" +  VnpayUtil.getRandomNumber(8));
         vnpParamsMap.put("vnp_OrderType", this.orderType);
         vnpParamsMap.put("vnp_Locale", "vn");

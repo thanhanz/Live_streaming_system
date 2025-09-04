@@ -41,10 +41,7 @@ public class PaymentController {
      */
     @GetMapping("/payment_callback")
     public ApiResponse<PaymentTransactionResponse> paymentCallback(@RequestParam Map<String, String> params) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByUsername(username);
-
-        PaymentTransactionResponse response = paymentService.handleCallbackPaymentHttps(params, user);
+        PaymentTransactionResponse response = paymentService.handleCallbackPaymentHttps(params);
 
         return ApiResponse.<PaymentTransactionResponse>builder()
                 .status(200)

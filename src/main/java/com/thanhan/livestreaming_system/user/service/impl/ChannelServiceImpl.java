@@ -20,10 +20,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,28 +40,67 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChannelServiceImpl implements ChannelService {
 
-    ChannelRepository channelRepository;
-    UserService userService;
-    FollowService followService;
-    RedisTemplate<String, Long> redisTemplate;
+    final ChannelRepository channelRepository;
+    final UserService userService;
+    final FollowService followService;
+    final RedisTemplate<String, Long> redisTemplate;
+    final S3Client s3Client;
+
+    @Value("${cloudflare.r2.bucket}")
+    private String R2Bucket;
+
+    @Value("${cloudflare.r2.public-url-id}")
+    private String publicR2Id;
+
+    /*
+        Thay = ten domain chu khong nen su dung Id nay`
+     */
+    public String getPublicR2Url() {
+        return "https://" + publicR2Id + ".r2.dev/";
+    }
+
 
     @Override
     @Transactional
-    public ChannelResponse create(ChannelCreationRequest request) throws IllegalAccessException {
+    public ChannelResponse create(String displayName, String description, MultipartFile avatar, MultipartFile banner) throws IllegalAccessException {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User u = userService.getUserByUsername(username);
-
         boolean hasChannel = channelRepository.existsByOwner_Id(UUID.fromString(u.getId().toString()));
-
         if (hasChannel)
             throw new IllegalAccessException("User has already owned a channel!");
 
-        Channel savedChannel = channelRepository.save(ChannelMapper.toChannel(request, u));
+        Channel savedChannel = channelRepository.save(ChannelMapper.toChannel(displayName, description, u));
+        if (banner != null) {
+            StringBuilder bannerUrl = new StringBuilder(uploadImageToR2(savedChannel.getId(), banner));
+            bannerUrl = new StringBuilder(getPublicR2Url()).append(bannerUrl);
+            savedChannel.setBannerUrl(bannerUrl.toString());
 
-        return ChannelMapper.toChannelResponse(savedChannel);
+        }
+        StringBuilder avatarUrl = new StringBuilder(uploadImageToR2(savedChannel.getId(), avatar));
+        avatarUrl = new StringBuilder(getPublicR2Url()).append(avatarUrl);
+        savedChannel.setAvatarUrl(avatarUrl.toString());
+
+        return ChannelMapper.toChannelResponse(channelRepository.save(savedChannel));
+    }
+
+    private String uploadImageToR2(Long channelId, MultipartFile image) {
+        String rawKey = "information/channels/" + channelId +"/" + System.currentTimeMillis() + "_" + image.getName();
+        try {
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(R2Bucket)
+                    .key(rawKey)
+                    .contentType(image.getContentType())
+                    .build();
+
+            byte[] bytes = image.getBytes();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+        } catch (Exception e) {
+            log.error("Failed to upload file: {}", image.getName(), e);
+        }
+        return rawKey;
     }
 
     @Override

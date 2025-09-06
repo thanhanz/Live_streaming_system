@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.membership.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.thanhan.livestreaming_system.membership.dto.request.StatisticsMembershipGet;
 import com.thanhan.livestreaming_system.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

@@ -3,6 +3,7 @@ import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.paginate.PaginateParams;
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
+import com.thanhan.livestreaming_system.tag.dto.TagRequest;
 import com.thanhan.livestreaming_system.video.dto.*;
 import com.thanhan.livestreaming_system.video.entity.Vod;
 import com.thanhan.livestreaming_system.video.service.R2Service;
@@ -28,9 +29,14 @@ public class VodController {
     public ApiResponse<String> upload(@RequestParam("thumbnail") MultipartFile thumbnail,
                                       @RequestParam("title") String title,
                                       @RequestParam("channelId") Long channelId,
-                                      @RequestParam("description") String description) throws AppException {
+                                      @RequestParam("description") String description,
+                                      @RequestParam(value = "categoryId", required = false) Long categoryId) throws AppException {
         //prepare upload video
-        String videoId  = vodService.uploadMetadataForVod(new VodCreationRequest(title, description, channelId), thumbnail);
+        String videoId = vodService.uploadMetadataForVod(new VodCreationRequest(title, description, channelId), thumbnail);
+
+        if (categoryId != null) {
+            vodService.assignCategory(Long.valueOf(videoId), categoryId);
+        }
 
         return ApiResponse.<String>builder()
                 .status(200)
@@ -56,7 +62,7 @@ public class VodController {
                                                                            @RequestParam(defaultValue = "1") int page,
                                                                            @RequestParam(defaultValue = "5") int limit,
                                                                            @RequestParam(defaultValue = "createdAt") String sortBy,
-                                                                           @RequestParam(defaultValue = "desc") String order) throws AppException  {
+                                                                           @RequestParam(defaultValue = "desc") String order) throws AppException {
 
         VodGetRequest request = VodGetRequest.of(page, limit, sortBy, order);
         return ApiResponse.<PaginationResponse<VodResponse>>builder()
@@ -107,6 +113,29 @@ public class VodController {
         return ApiResponse.<Void>builder()
                 .message("Accepted view in session: " + sessionKey)
                 .status(203).build();
+    }
+
+    @PostMapping("/{id}/tags")
+    public ApiResponse<Void> addTags(@PathVariable("id") Long vodId,
+                                     @RequestBody TagRequest request) {
+        vodService.addTags(vodId, request);
+        return ApiResponse.success(204, "Adding tags success!");
+    }
+
+    @GetMapping("/hashtag/{tagTitle}")
+    public ApiResponse<List<VodResponse>> getVodByTagTitle(@PathVariable("tagTitle") String tagTitle) {
+
+        return ApiResponse.<List<VodResponse>>builder()
+                .status(202)
+                .data(vodService.getVodsByTagName(tagTitle.toLowerCase())).build();
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ApiResponse<List<VodResponse>> getVodsByCategoryId(@PathVariable("categoryId") Long categoryId) {
+        return ApiResponse.<List<VodResponse>>builder()
+                .status(201)
+                .data(vodService.getVodsByCategoryId(categoryId))
+                .build();
     }
 
 }

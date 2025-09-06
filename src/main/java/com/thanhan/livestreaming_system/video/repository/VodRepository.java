@@ -12,10 +12,13 @@ import java.util.List;
 public interface VodRepository extends JpaRepository<Vod, Long> {
     Vod findById(long id);
 
-    @Query(value = "SELECT * FROM Vods v WHERE v.channel_id = :channelId", nativeQuery = true)
-    List<Vod> getAllByChannelId(Long channelId);
-
     @Query(value = "SELECT v FROM Vod v WHERE v.channel.id = :channelId")
     Page<Vod> getPaginationByChannelId(@Param("channelId") Long channelId, Pageable pageable);
+
+    @Query(value = "SELECT vod_id FROM vods_tags vt WHERE vt.tag_id = :tagId ORDER BY vod_id DESC", nativeQuery = true)
+    List<Long> getVodIdsByTagId(@Param("tagId") Long tagId);
+
+    @Query(value = "SELECT * FROM vods v WHERE v.category_id = :categoryId", nativeQuery = true)
+    List<Vod> getVodsByCategoryId(@Param("categoryId") Long categoryId);
 
 }

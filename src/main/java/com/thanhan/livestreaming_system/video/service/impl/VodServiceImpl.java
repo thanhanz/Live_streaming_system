@@ -1,9 +1,14 @@
 package com.thanhan.livestreaming_system.video.service.impl;
 
+import com.thanhan.livestreaming_system.category.entity.Category;
+import com.thanhan.livestreaming_system.category.service.CategoryService;
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
+import com.thanhan.livestreaming_system.tag.dto.TagRequest;
+import com.thanhan.livestreaming_system.tag.entity.Tag;
+import com.thanhan.livestreaming_system.tag.service.TagService;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
@@ -51,7 +56,8 @@ public class VodServiceImpl implements VodService {
     private final S3Client s3Client;
     private final VideoUploadProducer videoUploadProducer;
     private final RedisTemplate<String, String> redisTemplate;
-
+    private final CategoryService categoryService;
+    private final TagService tagService;
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
 
@@ -246,5 +252,57 @@ public class VodServiceImpl implements VodService {
         return rawKey;
     }
 
+    @Override
+    public void assignCategory(Long vodId, Long categoryId) {
+        Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
+        Category category = categoryService.findCategoryById(categoryId);
+        vod.setCategory(category);
+        vodRepository.save(vod);
+    }
 
+    @Override
+    public void addTags(Long vodId, TagRequest request) {
+        Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
+        request.tagTitles().forEach(tagTitle -> {
+            Tag tag = tagService.createTag(tagTitle.toLowerCase());
+            vod.getTags().add(tag);
+        });
+        vodRepository.save(vod);
+    }
+
+    @Override
+    public List<VodResponse> getVodsByTagName(String tagName) {
+        Tag tag  = tagService.getTagByName(tagName);
+
+        List<Long> vodIds = vodRepository.getVodIdsByTagId(tag.getId());
+        if (vodIds.isEmpty() || vodIds.size() == 0) {
+            return List.of();
+        }
+        List<VodResponse> results = new ArrayList<>();
+
+        vodIds.forEach(vodId -> {
+            Vod video = vodRepository.findById(vodId).orElseThrow(() -> new EntityNotFoundException("Video not found"));
+            String pendingViewKey = VodsRedisKey.acceptedViewKey(video.getId().toString());
+            ChannelCacheResponse channelRes = getChannelCache(video);
+            results.add(VodMapper.toVodResponse(video, getCurrentView(video, pendingViewKey), channelRes));
+        });
+
+        return results;
+    }
+
+    @Override
+    public List<VodResponse> getVodsByCategoryId(Long categoryId) {
+        Category category = categoryService.findCategoryById(categoryId);
+        List<Vod> vods = vodRepository.getVodsByCategoryId(category.getId());
+
+        if (vods.isEmpty() || vods.size() == 0) {
+            return List.of();
+        }
+
+        return vods.stream().map(vod -> {
+            String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
+            ChannelCacheResponse channelRes = getChannelCache(vod);
+            return VodMapper.toVodResponse(vod, getCurrentView(vod, pendingViewKey), channelRes);
+        }).collect(Collectors.toList());
+    }
 }

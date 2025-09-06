@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.video.service;
 
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
+import com.thanhan.livestreaming_system.tag.dto.TagRequest;
 import com.thanhan.livestreaming_system.video.dto.VodCreationRequest;
 import com.thanhan.livestreaming_system.video.dto.VodGetRequest;
 import com.thanhan.livestreaming_system.video.dto.VodResponse;
@@ -22,7 +23,11 @@ public interface VodService {
     Vod updateVodUrl(String url, Long id);
     void hideVod(Long vodId);
     void updateViews(Long vodId, Long views);
-
     String initJoinVod(Long vodId, String sessionId);
     void acceptedViews(Long vodId, String sessionKey);
+
+    void assignCategory(Long vodId, Long categoryId);
+    void addTags(Long vodId, TagRequest request);
+    List<VodResponse> getVodsByTagName(String tagName);
+    List<VodResponse> getVodsByCategoryId(Long categoryId);
 }

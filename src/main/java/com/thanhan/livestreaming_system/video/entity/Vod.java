@@ -2,7 +2,9 @@ package com.thanhan.livestreaming_system.video.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.thanhan.livestreaming_system.category.entity.Category;
 import com.thanhan.livestreaming_system.comment.entity.Comment;
+import com.thanhan.livestreaming_system.tag.entity.Tag;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,7 +14,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Table(name = "Vods")
 @Entity
@@ -64,4 +68,15 @@ public class Vod {
     @OneToMany(mappedBy = "vod", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     private List<Comment> comments;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    @ManyToMany
+    @JoinTable(name = "vods_tags",
+            joinColumns = @JoinColumn(name = "vod_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 }

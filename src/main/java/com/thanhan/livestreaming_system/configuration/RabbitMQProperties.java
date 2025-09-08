@@ -11,17 +11,30 @@ import org.springframework.stereotype.Component;
 @Setter
 @ConfigurationProperties(prefix = "rabbitmq")
 public class RabbitMQProperties {
-    private String exchange;
+    private Exchanges exchange;
     private Transcode transcode;
+    private Search search;
 
     @Getter @Setter
-    public static class Transcode {
-        private QueueProps live;
-        private QueueProps vod;
+    public static class Exchanges {
+        private String transcode;
+        private String search;
     }
 
     @Getter @Setter
-    public static class QueueProps {
+    public static class Transcode {
+        private Queues live;
+        private Queues vod;
+    }
+
+    @Getter @Setter
+    public static class Search {
+        private String queue;
+        private String routingKey;
+    }
+
+    @Getter @Setter
+    public static class Queues {
         private String queue;
         private String routingKey;
     }

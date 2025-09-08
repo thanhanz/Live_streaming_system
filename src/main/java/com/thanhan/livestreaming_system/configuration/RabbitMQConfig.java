@@ -28,8 +28,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public TopicExchange exchange() {
-        return new TopicExchange(properties.getExchange());
+    public TopicExchange transcodeExchange() {
+        return new TopicExchange(properties.getExchange().getTranscode());
+    }
+
+    @Bean
+    public TopicExchange searchExchange() {
+        return new TopicExchange(properties.getExchange().getSearch());
     }
 
     @Bean
@@ -38,10 +43,10 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding liveBinding(Queue liveQueue, TopicExchange exchange) {
+    public Binding liveBinding(Queue liveQueue, TopicExchange transcodeExchange) {
         return BindingBuilder
                 .bind(liveQueue)
-                .to(exchange)
+                .to(transcodeExchange)
                 .with(properties.getTranscode().getLive().getRoutingKey());
     }
 
@@ -51,13 +56,21 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding vodBinding(Queue vodQueue, TopicExchange exchange) {
+    public Binding vodBinding(Queue vodQueue, TopicExchange transcodeExchange) {
         return BindingBuilder
                 .bind(vodQueue)
-                .to(exchange)
+                .to(transcodeExchange)
                 .with(properties.getTranscode().getVod().getRoutingKey());
     }
 
+    @Bean Queue searchQueue() {
+        return new Queue(properties.getSearch().getQueue(),  true);
+    }
 
+    @Bean Binding searchBinding(Queue searchQueue, TopicExchange searchExchange) {
+        return BindingBuilder.bind(searchQueue)
+                .to(searchExchange)
+                .with(properties.getSearch().getRoutingKey());
+    }
 }
 

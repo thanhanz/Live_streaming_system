@@ -2,6 +2,7 @@ package com.thanhan.livestreaming_system.livestream.dto.mapper;
 
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamSearchDocument;
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
@@ -21,6 +22,16 @@ public class StreamMapper {
                 stream.getStreamKey(),
                 currentViewer,
                 ChannelMapper.toChannelCacheResponse(stream.getChannel(), totalFollowers)
+        );
+    }
+
+    public static StreamSearchDocument toStreamSearchDocument(Stream stream) {
+        return new StreamSearchDocument(
+                stream.getTitle(),
+                stream.getThumbnailUrl(),
+                stream.getChannel().getId().toString(),
+                stream.getChannel().getDisplayName(),
+                stream.getChannel().getAvatarUrl()
         );
     }
 

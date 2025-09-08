@@ -3,6 +3,7 @@ package com.thanhan.livestreaming_system.livestream.service.impl;
 import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
 import com.thanhan.livestreaming_system.video.dto.VodTranscodeRequest;
 import com.thanhan.livestreaming_system.video.entity.Vod;
+import com.thanhan.livestreaming_system.video.messaging.producer.VideoUploadProducer;
 import com.thanhan.livestreaming_system.video.service.R2Service;
 import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class FFmpegServiceImpl implements FFmpegService {
     private final S3Client s3Client;
     private final VodService vodService;
     private final R2Service r2Service;
+    private final VideoUploadProducer videoUploadProducer;
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
@@ -185,7 +187,6 @@ public class FFmpegServiceImpl implements FFmpegService {
                 String hlsOutput = parentDir + "/%v/playlist.m3u8";
                 String segmentPattern = parentDir + "/%v/segment_%03d.ts";
 
-
                 List<String> ffmpegCommand = new ArrayList<>(List.of(
                         "ffmpeg",
                         "-hide_banner",
@@ -261,6 +262,9 @@ public class FFmpegServiceImpl implements FFmpegService {
                     String m3u8UrlInR2 = getPublicR2Url() + "channels/" + channelId.toString() +"/vods_hls/" + vodId.toString() + "/master.m3u8";
 
                     Vod transcodedVod = vodService.updateVodUrl(m3u8UrlInR2, vodId);
+                    //Send when stored video in R2 success
+                    videoUploadProducer.sendMessageToUpdateSearchService(transcodedVod, "create");
+
                     //Remove raw video when upload
                     r2Service.deleteFileFromR2(request.vodStorageKey());
                     log.info("Finished upload HLS file to R2 and public url: ", transcodedVod.getVideoUrl());

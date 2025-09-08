@@ -30,7 +30,10 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
-
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: elastic
 server:
   port: 8081
   servlet:
@@ -58,7 +61,9 @@ cloudflare:
     public-url-id: ${R2_PUBLIC_URL}
 
 rabbitmq:
-  exchange: "video.transcode.exchange"
+  exchange:
+    transcode: "video.transcode.exchange"
+    search: "event.cud.search.exchange"
   transcode:
     live:
       queue: "video.transcode.live.queue"
@@ -66,6 +71,10 @@ rabbitmq:
     vod:
       queue: "video.transcode.vod.queue"
       routing-key: "video.transcode.vod"
+  search:
+    queue: "search.service.queue"
+    routing-key: "event.search.#" # (*) chỉ phù hợp với 1 cấp ví dụ: event.search.create
+                                  # (#) thì phù hợp với nhiều cấp hơn
 
 vnpay:
   tmn-code: ${VNP_TMNCODE}

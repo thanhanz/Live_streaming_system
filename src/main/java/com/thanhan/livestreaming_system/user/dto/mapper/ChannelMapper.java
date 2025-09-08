@@ -4,6 +4,7 @@ import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCardResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelToDocumentSearch;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
 
@@ -24,11 +25,22 @@ public class ChannelMapper {
         );
     }
 
+    public static ChannelToDocumentSearch toDocumentSearch(Channel channel) {
+        return new ChannelToDocumentSearch(
+                channel.getId().toString(),
+                "channel",
+                channel.getDisplayName(),
+                channel.getAvatarUrl(),
+                Long.valueOf(channel.getFollowersCount())
+        );
+    }
+
     public static ChannelCacheResponse toChannelCacheResponse(Channel channel, Long totalFollowers) {
         return new ChannelCacheResponse(
                 channel.getId().toString(),
                 channel.getDisplayName(),
                 channel.getAvatarUrl(),
+                channel.getOwner().getId().toString(),
                 totalFollowers
         );
     }

@@ -37,4 +37,21 @@ public class VodMapper {
         );
     }
 
+    public static VodToDocumentSearch toDocumentSearch(Vod vod) {
+        return new VodToDocumentSearch(
+                vod.getId().toString(),
+                "video",
+                vod.getTitle(),
+                vod.getDescription(),
+                vod.getThumbnail(),
+                vod.getOnlyMember(),
+                vod.getTotalView(),
+                vod.getCreatedAt(),
+                vod.getChannel().getId().toString(),
+                vod.getChannel().getDisplayName(),
+                vod.getChannel().getAvatarUrl(),
+                Long.valueOf(vod.getChannel().getFollowersCount())
+        );
+    }
+
 }

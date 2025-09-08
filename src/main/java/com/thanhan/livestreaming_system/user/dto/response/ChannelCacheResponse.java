@@ -6,5 +6,6 @@ public record ChannelCacheResponse(
         String id,
         String displayName,
         String avatar,
+        String ownerId,
         Long totalFollowers) {
 }

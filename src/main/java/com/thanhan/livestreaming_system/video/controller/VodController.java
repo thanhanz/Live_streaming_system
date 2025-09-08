@@ -72,7 +72,8 @@ public class VodController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<VodResponse> updateVod(@PathVariable(name = "id") Long id, VodUpdationRequest request) throws AppException {
+    public ApiResponse<VodResponse> updateVod(@PathVariable(name = "id") Long id,
+                                              @RequestBody VodUpdationRequest request) throws AppException {
         VodResponse result = vodService.updateVod(id, request);
 
         return ApiResponse.<VodResponse>builder()

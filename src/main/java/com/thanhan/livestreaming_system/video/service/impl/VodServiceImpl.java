@@ -58,6 +58,8 @@ public class VodServiceImpl implements VodService {
     private final RedisTemplate<String, String> redisTemplate;
     private final CategoryService categoryService;
     private final TagService tagService;
+    private final VideoUploadProducer uploadProducer;
+
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
 
@@ -77,7 +79,7 @@ public class VodServiceImpl implements VodService {
         String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
 
         Channel c = channelService.findById(channelId);
-        ChannelCacheResponse channelResponse = new ChannelCacheResponse(c.getId().toString(), c.getDisplayName(), c.getAvatarUrl(), c.getFollowersCount().longValue());
+        ChannelCacheResponse channelResponse = new ChannelCacheResponse(c.getId().toString(), c.getDisplayName(), c.getAvatarUrl(), c.getOwner().getId().toString() ,c.getFollowersCount().longValue());
 
         Pageable pageable = PageRequest.of(request.getPage() - 1, request.getLimit(), Sort.by(direction, sortBy));
 
@@ -132,6 +134,8 @@ public class VodServiceImpl implements VodService {
     public void deleteVod(Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new RuntimeException("Video not found"));
         vodRepository.delete(vod);
+
+        videoUploadProducer.sendMessageToUpdateSearchService(vod, "delete");
     }
 
     @Override
@@ -154,18 +158,17 @@ public class VodServiceImpl implements VodService {
     @Transactional
     public VodResponse updateVod(Long vodId, VodUpdationRequest request) {
         Vod vod = vodRepository.findById(vodId).orElseThrow(() -> new RuntimeException("Video not found"));
+
         vod.setTitle(request.title());
         vod.setDescription(request.description());
-        vod.setThumbnail(request.imageUrl());
         vod.setOnlyMember(request.isOnlyMember());
-        vod.setPublished(request.published());
         Vod updatedVod = vodRepository.save(vod);
 
         ChannelCacheResponse response = getChannelCache(vod);
         String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
+        Long view = getCurrentView(updatedVod, pendingViewKey);
 
-        Long view = getCurrentView(vod, pendingViewKey);
-
+        videoUploadProducer.sendMessageToUpdateSearchService(updatedVod, "update");
         return VodMapper.toVodResponse(updatedVod, view, response);
     }
 

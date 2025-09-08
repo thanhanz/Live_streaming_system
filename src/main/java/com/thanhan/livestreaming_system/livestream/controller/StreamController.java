@@ -76,7 +76,6 @@ public class StreamController {
 
     @GetMapping("/channel/{channelId}/streaming")
     public ApiResponse<StreamCardResponse> getCurrentLiveStreaming(@PathVariable("channelId") Long channelId) {
-
         return ApiResponse.<StreamCardResponse>builder()
                 .data(streamService.getCurrentLiveStreaming(channelId))
                 .message("Current live streaming")
@@ -107,7 +106,9 @@ public class StreamController {
 
         Stream stream = streamService.getLiveStreamByStreamKey(request);
         Long channelId = stream.getChannel().getId();
+
         websocketService.sentLiveStreamStatus(channelId, "streaming");
+        streamTranscodeProducer.sendToSearchConsumer(stream,"streaming");
 
         return ApiResponse.<Void>builder()
                 .status(200)
@@ -120,7 +121,11 @@ public class StreamController {
         streamService.finish(streamKey);
         Stream stream = streamService.getLiveStreamByStreamKey(streamKey);
         Long channelId = stream.getChannel().getId();
+
         websocketService.sentLiveStreamStatus(channelId, "stopped");
+
+        streamTranscodeProducer.sendToSearchConsumer(stream,"stopped");
+
         log.info("Send message: [STOPPED] with channelId: " + channelId);
         return ApiResponse.<Void>builder()
                 .status(200)

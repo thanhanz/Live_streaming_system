@@ -9,6 +9,7 @@ import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
+import com.thanhan.livestreaming_system.user.messaging.ChannelEventPublisher;
 import com.thanhan.livestreaming_system.user.repository.ChannelRepository;
 import com.thanhan.livestreaming_system.user.repository.UserRepository;
 import com.thanhan.livestreaming_system.user.service.ChannelService;
@@ -48,7 +49,7 @@ public class ChannelServiceImpl implements ChannelService {
     final FollowService followService;
     final RedisTemplate<String, Long> redisTemplate;
     final S3Client s3Client;
-
+    final ChannelEventPublisher eventPublisher;
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
 
@@ -83,7 +84,10 @@ public class ChannelServiceImpl implements ChannelService {
         avatarUrl = new StringBuilder(getPublicR2Url()).append(avatarUrl);
         savedChannel.setAvatarUrl(avatarUrl.toString());
 
-        return ChannelMapper.toChannelResponse(channelRepository.save(savedChannel));
+        Channel finalChangeChannel = channelRepository.save(savedChannel);
+        eventPublisher.sendMessage(finalChangeChannel, "create");
+
+        return ChannelMapper.toChannelResponse(finalChangeChannel);
     }
 
     private String uploadImageToR2(Long channelId, MultipartFile image) {
@@ -116,6 +120,8 @@ public class ChannelServiceImpl implements ChannelService {
 //        oldChannel.setAvatarUrl(request.avatar());
 //        oldChannel.setBannerUrl(request.bannerUrl());
 
+        Channel savedChannel = channelRepository.save(oldChannel);
+        eventPublisher.sendMessage(savedChannel, "update");
         return ChannelMapper.toChannelResponse(channelRepository.save(oldChannel));
     }
 
@@ -149,10 +155,14 @@ public class ChannelServiceImpl implements ChannelService {
     @Override
     @Transactional
     public void delete(String channelId) {
-        channelRepository.deleteById(Long.valueOf(channelId));
+
+        Channel c = channelRepository.getChannelById(Long.valueOf(channelId)).orElseThrow(() -> new EntityNotFoundException("Channel not found!"));
+        channelRepository.delete(c);
         String countFollowerKey = ChannelUtils.generateCountFollower(channelId);
-        if (redisTemplate.hasKey(countFollowerKey))
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(countFollowerKey)))
             redisTemplate.delete(countFollowerKey);
+
+        eventPublisher.sendMessage(c, "delete");
     }
 
     @Override

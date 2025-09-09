@@ -21,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -31,6 +33,8 @@ public class UserController {
     FollowService followService;
     ChannelService channelService;
 
+
+
     @GetMapping("/current-user")
     public ApiResponse<UserResponse> getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -38,6 +42,25 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .data(UserMapper.toUserResponse(userService.getUserByUsername(username)))
                 .status(202)
+                .build();
+    }
+
+    @PutMapping("/add-role")
+    public ApiResponse<UserResponse> updateRole(@RequestParam(value = "roleName") String roleName) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByUsername(username);
+
+        return ApiResponse.<UserResponse>builder()
+                .data(userService.updateRoleUser(user, roleName))
+                .build();
+    }
+
+    @GetMapping("/get-all")
+    public ApiResponse<List<UserResponse>> getAllUser() {
+        return ApiResponse.<List<UserResponse>>builder()
+                .data(userService.getAllUser())
+                .status(200)
+                .message("Get all user for admin role")
                 .build();
     }
 

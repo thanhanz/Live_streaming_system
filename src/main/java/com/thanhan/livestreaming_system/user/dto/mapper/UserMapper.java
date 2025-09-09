@@ -2,7 +2,10 @@ package com.thanhan.livestreaming_system.user.dto.mapper;
 
 import com.thanhan.livestreaming_system.user.dto.request.UserCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;
+import com.thanhan.livestreaming_system.user.entity.Role;
 import com.thanhan.livestreaming_system.user.entity.User;
+
+import java.util.stream.Collectors;
 
 public class UserMapper {
 
@@ -22,7 +25,8 @@ public class UserMapper {
                 user.getUsername(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
         );
     }
 

@@ -5,12 +5,13 @@ import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -18,6 +19,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @AllArgsConstructor
+@Builder
 @NoArgsConstructor
 public class User {
 
@@ -44,6 +46,9 @@ public class User {
 
     @Nullable
     private String avatar;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    private Set<Role> roles = new HashSet<>();
 
     @OneToOne(mappedBy = "owner",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore

@@ -12,4 +12,5 @@ public interface SearchService {
     void saveDocument(SearchEvent event);
     void updateDocument(SearchEvent event);
 
+
 }

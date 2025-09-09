@@ -29,11 +29,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.StringJoiner;
 import java.util.UUID;
 
 @Service
@@ -65,7 +67,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        var token = generateToken(request.getUsername());
+        var token = generateToken(user);
         var refreshToken = UUID.randomUUID().toString();
 
         createNewRefreshToken(refreshToken, user);
@@ -113,7 +115,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         oldToken.setRevoked(true);
         refreshTokenRepository.save(oldToken);
 
-        var newAccessToken = generateToken(user.getUsername());
+        var newAccessToken = generateToken(user);
         var newRefreshToken = UUID.randomUUID().toString();
 
         createNewRefreshToken(newRefreshToken, user);
@@ -139,11 +141,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         refreshTokenRepository.save(refreshToken);
     }
 
-    private String generateToken(String username) throws JOSEException {
+    private String generateToken(User user) throws JOSEException {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(username)
+                .subject(user.getUsername())
                 .issuer("auth-service")
                 .issueTime(new Date())
                 /*
@@ -152,7 +154,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .expirationTime(new Date(
                         Instant.now().plus(expirationTime, ChronoUnit.HOURS).toEpochMilli()
                 ))
-                .claim("sub", username)
+                .claim("scope", buildScope(user))
                 .build();
 
         Payload payload = new Payload(claimsSet.toJSONObject());
@@ -166,6 +168,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             log.error("Cannot create token: ",e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    private String buildScope(User user) {
+        StringJoiner scopeJoiner = new StringJoiner(" ");
+        if(!CollectionUtils.isEmpty(user.getRoles()))
+            user.getRoles().forEach(roles -> {
+                scopeJoiner.add("ROLE_" + roles.getName());
+            });
+
+        return scopeJoiner.toString();
     }
 
 }

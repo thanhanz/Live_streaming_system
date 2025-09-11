@@ -2,10 +2,7 @@ package com.thanhan.livestreaming_system.livestream.service;
 
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,5 +22,6 @@ public interface StreamService {
     Set<String> getLiveStreamingChannels();
     StreamCardResponse getCurrentLiveStreaming(Long channelId);
 
-    Integer getLiveStreamCountByChannelId(Long channelId);
+    Long countTotalStreams();
+    List<StreamStatsResponse> statisticsStreams(Integer year);
 }

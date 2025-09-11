@@ -11,10 +11,14 @@ import com.thanhan.livestreaming_system.video.service.VodService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CurrentTimestamp;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.Year;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -166,9 +170,17 @@ public class VodController {
     }
 
     @GetMapping("/total")
-    public ApiResponse<Integer> getTotalNumberOfVods() throws AppException {
-        return ApiResponse.<Integer>builder()
+    public ApiResponse<Long> getTotalNumberOfVods() throws AppException {
+        return ApiResponse.<Long>builder()
                 .data(vodService.countTotalVods()).build();
+    }
+
+    @GetMapping("/stats")
+    public ApiResponse<List<VodStatisticResponse>> getVodStats(@RequestParam(value = "year") Integer year) throws AppException {
+
+        return ApiResponse.<List<VodStatisticResponse>>builder()
+                .data(vodService.statisticVods(year))
+                .build();
     }
 
 }

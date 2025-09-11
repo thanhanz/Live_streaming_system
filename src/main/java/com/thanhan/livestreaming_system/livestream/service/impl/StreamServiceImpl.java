@@ -4,10 +4,7 @@ import com.thanhan.livestreaming_system.chat.utils.ChatUtils;
 import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.entity.StreamStatus;
 import com.thanhan.livestreaming_system.livestream.repository.StreamRepository;
@@ -24,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -32,6 +30,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.File;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -260,7 +259,29 @@ public class StreamServiceImpl implements StreamService {
     }
 
     @Override
-    public Integer getLiveStreamCountByChannelId(Long channelId) {
-        return 0;
+    @PreAuthorize("hasRole('ADMIN')")
+    public Long countTotalStreams() {
+        return streamRepository.countTotalStreams();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<StreamStatsResponse> statisticsStreams(Integer year) {
+        List<StreamStatsResponse> rawData;
+        if (year == null) {
+            rawData = streamRepository.statisticStreams(LocalDateTime.now().getYear());
+        } else rawData = streamRepository.statisticStreams(year);
+
+        List<StreamStatsResponse> result = new ArrayList<>();
+
+        for (int i = 0; i < 12; i++) {
+            Integer month = i + 1;
+            Long totalStreams = rawData.stream()
+                    .filter(s -> s.month().equals(month))
+                    .map(StreamStatsResponse::totalStreams)
+                    .findFirst().orElse(0L);
+            result.add(new StreamStatsResponse(month, totalStreams));
+        }
+        return result;
     }
 }

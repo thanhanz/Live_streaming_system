@@ -33,5 +33,7 @@ public interface VodService {
     PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request);
     PaginationResponse<VodAdminResponse> getAllVods( VodGetRequest request);
     List<VodAdminResponse> searchVodsByTitleOrChannelName(String query);
-    Integer countTotalVods();
+    Long countTotalVods();
+    List<VodStatisticResponse> statisticVods(Integer year);
+
 }

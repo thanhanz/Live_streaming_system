@@ -1,5 +1,6 @@
 package com.thanhan.livestreaming_system.video.repository;
 
+import com.thanhan.livestreaming_system.video.dto.VodStatisticResponse;
 import com.thanhan.livestreaming_system.video.entity.Vod;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,14 @@ public interface VodRepository extends JpaRepository<Vod, Long> {
             " ORDER BY v.channel_id DESC", nativeQuery = true)
     List<Vod> searchVodsByChannelNameOrTitle(@Param("query") String query);
 
-    @Query(value = "SELECT v.id FROM Vod v")
-    Integer countAll();
+    @Query("SELECT COUNT(v.id) FROM Vod v WHERE v.videoUrl IS NOT NULL ")
+    Long countAll();
+
+    @Query("SELECT new com.thanhan.livestreaming_system.video.dto.VodStatisticResponse(" +
+            "MONTH(v.createdAt), COUNT(v.id)) " +
+            "FROM Vod v " +
+            "WHERE YEAR(v.createdAt) = :year AND v.videoUrl IS NOT NULL " +
+            "GROUP BY MONTH(v.createdAt) " +
+            "ORDER BY MONTH(v.createdAt)")
+    List<VodStatisticResponse> statisticVods(@Param("year") Integer year);
 }

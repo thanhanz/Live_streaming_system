@@ -2,10 +2,7 @@ package com.thanhan.livestreaming_system.livestream.controller;
 
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamPrepareResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.messaging.StreamTranscodeConsumer;
 import com.thanhan.livestreaming_system.livestream.messaging.StreamTranscodeProducer;
@@ -201,53 +198,19 @@ public class StreamController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/count")
+    public ApiResponse<Long> countStreams() {
+        return ApiResponse.<Long>builder()
+                .status(200)
+                .data(streamService.countTotalStreams())
+                .build();
+    }
+
+    @GetMapping("/stats")
+    public ApiResponse<List<StreamStatsResponse>> getStreamStats(@RequestParam("year") Integer year) {
+        return ApiResponse.<List<StreamStatsResponse>>builder()
+                .status(201)
+                .data(streamService.statisticsStreams(year)).build();
+    }
 }
-
-//            File zipFile = File.createTempFile("recordings-" + key + "-", ".zip");
-//
-//            try (FileOutputStream fos = new FileOutputStream(zipFile);
-//                 ZipOutputStream zos = new ZipOutputStream(fos)) {
-//
-//                // Stream trực tiếp từ S3 vào ZIP
-//                for (S3Object obj : allMp4Object) {
-//                    String fileName = Paths.get(obj.key()).getFileName().toString();
-//
-//                    GetObjectRequest getRequest = GetObjectRequest.builder()
-//                            .bucket(R2Bucket)
-//                            .key(obj.key())
-//                            .build();
-//
-//                    try (ResponseInputStream<GetObjectResponse> s3In = s3Client.getObject(getRequest)) {
-//                        ZipEntry zipEntry = new ZipEntry(fileName);
-//                        zos.putNextEntry(zipEntry);
-//
-//                        // Copy trực tiếp từ S3 stream vào ZIP
-//                        byte[] buffer = new byte[8192]; // Buffer lớn hơn cho hiệu suất tốt hơn
-//                        int length;
-//                        while ((length = s3In.read(buffer)) > 0) {
-//                            zos.write(buffer, 0, length);
-//                        }
-//
-//                        zos.closeEntry();
-//                        log.info("Added file to ZIP: " + fileName);
-//                    }
-//                }
-//            }
-
-//            Resource resource = new FileSystemResource(zipFile);
-//            String zipFileName = "recordings-" + key + ".zip";
-//            zipFile.deleteOnExit();
-//
-//            return ResponseEntity.ok()
-//                    .header(HttpHeaders.CONTENT_DISPOSITION,
-//                            "attachment; filename=\"" + zipFileName + "\"")
-//                    .header(HttpHeaders.CONTENT_TYPE, "application/zip")
-//                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(zipFile.length()))
-//                    .body(resource);
-//
-//        } catch (Exception e) {
-//            log.error("Error downloading and zipping recordings", e);
-//            return ResponseEntity.internalServerError().build();
-//        }
-//    }
-//}

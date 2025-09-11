@@ -41,8 +41,10 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -396,7 +398,31 @@ public class VodServiceImpl implements VodService {
 
 
     @Override
-    public Integer countTotalVods() {
+    public Long countTotalVods() {
         return vodRepository.countAll();
+    }
+
+    @Override
+    public List<VodStatisticResponse> statisticVods(Integer year) {
+        List<VodStatisticResponse> vodResResult;
+
+        if (year == null) {
+            vodResResult = vodRepository.statisticVods(LocalDateTime.now().getYear());
+        } else {
+            vodResResult = vodRepository.statisticVods(year);
+        }
+
+        List<VodStatisticResponse> fullResult = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            Integer month = i + 1;
+            Long totalVods = vodResResult.stream()
+                    .filter(s -> s.month().equals(month))
+                    .map(VodStatisticResponse::totalVideos)
+                    .findFirst()
+                    .orElse(0L);
+            fullResult.add(new VodStatisticResponse(i + 1, totalVods));
+        }
+
+        return fullResult;
     }
 }

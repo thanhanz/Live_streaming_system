@@ -1,9 +1,11 @@
 package com.thanhan.livestreaming_system.livestream.repository;
 
+import com.thanhan.livestreaming_system.livestream.dto.response.StreamStatsResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +24,14 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
             "WHERE s.channel_id = :channelId AND s.status = 'STREAMING' " +
             "ORDER BY s.id DESC LIMIT 1", nativeQuery = true)
     Stream getCurrentLiveStreaming(@Param("channelId") Long channelId);
+
+    @Query("SELECT COUNT(s.id) FROM Stream s WHERE s.status = 'FINISHED' ")
+    Long countTotalStreams();
+
+    @Query("SELECT new com.thanhan.livestreaming_system.livestream.dto.response.StreamStatsResponse(" +
+            "MONTH(s.createdAt), COUNT(s.id)" + ") " +
+            "FROM Stream s WHERE YEAR(s.createdAt) = :year AND s.status = 'FINISHED' " +
+            "GROUP BY MONTH(s.createdAt) " +
+            "ORDER BY MONTH(s.createdAt) ")
+    List<StreamStatsResponse> statisticStreams(@RequestParam("year")Integer year);
 }

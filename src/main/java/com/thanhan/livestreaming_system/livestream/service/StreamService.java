@@ -24,4 +24,6 @@ public interface StreamService {
 
     Set<String> getLiveStreamingChannels();
     StreamCardResponse getCurrentLiveStreaming(Long channelId);
+
+    Integer getLiveStreamCountByChannelId(Long channelId);
 }

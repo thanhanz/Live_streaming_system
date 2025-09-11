@@ -11,14 +11,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 
 public class PaginateParams {
-
     @NotNull
-    @Min(1)
-    public int page;
-
-    @NotNull
-    @Min(5)
     public int limit;
     public String sortBy = "createdAt";
     public String order = "desc";
+    public Object nextCursor;
 }

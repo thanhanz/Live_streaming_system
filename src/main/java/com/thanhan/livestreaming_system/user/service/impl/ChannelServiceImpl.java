@@ -2,9 +2,11 @@ package com.thanhan.livestreaming_system.user.service.impl;
 
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
+import com.thanhan.livestreaming_system.livestream.service.StreamService;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelUpdateRequest;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelAdminResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
@@ -16,6 +18,8 @@ import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.FollowService;
 import com.thanhan.livestreaming_system.user.service.UserService;
 import com.thanhan.livestreaming_system.user.utils.ChannelUtils;
+import com.thanhan.livestreaming_system.video.repository.VodRepository;
+import com.thanhan.livestreaming_system.video.service.VodService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,8 +50,7 @@ import java.util.stream.Collectors;
 public class ChannelServiceImpl implements ChannelService {
 
     final ChannelRepository channelRepository;
-    final UserService userService;
-    final FollowService followService;
+    final UserService userService;    final FollowService followService;
     final RedisTemplate<String, Long> redisTemplate;
     final S3Client s3Client;
     final ChannelEventPublisher eventPublisher;
@@ -154,6 +158,7 @@ public class ChannelServiceImpl implements ChannelService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(String channelId) {
 
         Channel c = channelRepository.getChannelById(Long.valueOf(channelId)).orElseThrow(() -> new EntityNotFoundException("Channel not found!"));
@@ -179,5 +184,26 @@ public class ChannelServiceImpl implements ChannelService {
     @Override
     public Channel findById(Long channelId) {
         return channelRepository.getChannelById(channelId).orElseThrow(() -> new RuntimeException("Channel not found!"));
+    }
+
+    /**
+     * For admin
+     */
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ChannelAdminResponse> getAllChannels() {
+        return channelRepository.getAllChannels();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public Integer countTotalChannels() {
+        return channelRepository.getTotalChannels();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ChannelAdminResponse> searchChannels(String keyword) {
+        return channelRepository.searchChannelName(keyword);
     }
 }

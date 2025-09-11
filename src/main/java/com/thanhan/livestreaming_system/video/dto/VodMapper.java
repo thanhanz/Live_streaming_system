@@ -37,6 +37,16 @@ public class VodMapper {
         );
     }
 
+    public static VodAdminResponse toAdminResponse(Vod vod) {
+        return new VodAdminResponse(
+                vod.getId(),
+                vod.getTitle(),
+                vod.getTotalView(),
+                vod.getCreatedAt(),
+                vod.getChannel().getDisplayName()
+        );
+    }
+
     public static VodToDocumentSearch toDocumentSearch(Vod vod) {
         return new VodToDocumentSearch(
                 vod.getId().toString(),

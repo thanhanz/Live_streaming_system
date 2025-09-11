@@ -2,10 +2,7 @@ package com.thanhan.livestreaming_system.video.service;
 
 import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.tag.dto.TagRequest;
-import com.thanhan.livestreaming_system.video.dto.VodCreationRequest;
-import com.thanhan.livestreaming_system.video.dto.VodGetRequest;
-import com.thanhan.livestreaming_system.video.dto.VodResponse;
-import com.thanhan.livestreaming_system.video.dto.VodUpdationRequest;
+import com.thanhan.livestreaming_system.video.dto.*;
 import com.thanhan.livestreaming_system.video.entity.Vod;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.protocol.VoidSdkResponse;
@@ -14,7 +11,6 @@ import java.util.List;
 
 public interface VodService {
 
-    PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request);
     String uploadMetadataForVod(VodCreationRequest request, MultipartFile thumbnail);
     void deleteVod(Long id);
     VodResponse getVodResById(Long id);
@@ -30,4 +26,12 @@ public interface VodService {
     void addTags(Long vodId, TagRequest request);
     List<VodResponse> getVodsByTagName(String tagName);
     List<VodResponse> getVodsByCategoryId(Long categoryId);
+
+    /**
+     * Admin service
+     */
+    PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request);
+    PaginationResponse<VodAdminResponse> getAllVods( VodGetRequest request);
+    List<VodAdminResponse> searchVodsByTitleOrChannelName(String query);
+    Integer countTotalVods();
 }

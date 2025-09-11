@@ -1,6 +1,8 @@
 package com.thanhan.livestreaming_system.user.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.thanhan.livestreaming_system.livestream.entity.Stream;
+import com.thanhan.livestreaming_system.video.entity.Vod;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,10 +10,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
+import java.util.List;
 
 @Table(name = "channels")
 @Entity
@@ -45,4 +46,11 @@ public class Channel {
 
 
     private Integer followersCount = 0;
+
+    @OneToMany(mappedBy = "channel", fetch = FetchType.LAZY)
+    private List<Vod> vods;
+
+    @OneToMany(mappedBy = "channel", fetch = FetchType.LAZY)
+    private List<Stream> streams;
+
 }

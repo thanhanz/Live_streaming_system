@@ -14,6 +14,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -58,16 +59,17 @@ public class VodController {
         Paginate
      */
     @GetMapping("/channels/{channelId}")
-    public ApiResponse<PaginationResponse<VodResponse>> getVodsByChannelId(@PathVariable(name = "channelId") Long channelId,
-                                                                           @RequestParam(defaultValue = "1") int page,
-                                                                           @RequestParam(defaultValue = "5") int limit,
-                                                                           @RequestParam(defaultValue = "createdAt") String sortBy,
-                                                                           @RequestParam(defaultValue = "desc") String order) throws AppException {
+    ApiResponse<PaginationResponse<VodResponse>> getVodsByChannelId(@PathVariable("channelId") Long channelId ,
+                                                                    @RequestParam(required = false) Integer limit,
+                                                                    @RequestParam(required = false) String sortBy,
+                                                                    @RequestParam(required = false) String order,
+                                                                    @RequestParam(required = false) String cursor) {
 
-        VodGetRequest request = VodGetRequest.of(page, limit, sortBy, order);
+        VodGetRequest getRequest = VodGetRequest.of(limit, sortBy, order, cursor);
+
         return ApiResponse.<PaginationResponse<VodResponse>>builder()
                 .message("Get paginated vod")
-                .data(vodService.getAllVodsByChannelId(channelId, request))
+                .data(vodService.getAllVodsByChannelId(channelId, getRequest))
                 .build();
     }
 
@@ -137,6 +139,36 @@ public class VodController {
                 .status(201)
                 .data(vodService.getVodsByCategoryId(categoryId))
                 .build();
+    }
+
+    /**
+     * For administrator
+     */
+
+    @GetMapping("/get-all")
+    public ApiResponse<PaginationResponse<VodAdminResponse>> getAllVods(@RequestParam(required = false) Integer limit,
+                                                                        @RequestParam(required = false) String sortBy,
+                                                                        @RequestParam(required = false) String order,
+                                                                        @RequestParam(required = false) String cursor) throws AppException {
+        VodGetRequest getRequest = VodGetRequest.of(limit, sortBy, order, cursor);
+
+        return ApiResponse.<PaginationResponse<VodAdminResponse>>builder()
+                .message("Get paginated vod")
+                .data(vodService.getAllVods(getRequest))
+                .build();
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<VodAdminResponse>> searchVodsWithTitleOrChannelName(@RequestParam String query) throws AppException {
+        return ApiResponse.<List<VodAdminResponse>>builder()
+                .data(vodService.searchVodsByTitleOrChannelName(query))
+                .build();
+    }
+
+    @GetMapping("/total")
+    public ApiResponse<Integer> getTotalNumberOfVods() throws AppException {
+        return ApiResponse.<Integer>builder()
+                .data(vodService.countTotalVods()).build();
     }
 
 }

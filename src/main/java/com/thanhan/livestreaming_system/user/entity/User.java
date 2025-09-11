@@ -29,12 +29,15 @@ public class User {
     private UUID id;
 
     @NonNull
+    @Column(unique = true)
     private String username;
 
     @NonNull
     private String password;
     private String firstName;
     private String lastName;
+
+    @Column(unique = true)
     private String email;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy HH:mm:ss", timezone = "Asia/Ho_Chi_Minh")
     @CreationTimestamp
@@ -45,6 +48,7 @@ public class User {
     private Instant updatedAt;
 
     @Nullable
+    @Column(name = "avatar")
     private String avatar;
 
     @ManyToMany(fetch = FetchType.EAGER)

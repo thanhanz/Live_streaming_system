@@ -34,7 +34,6 @@ public class UserController {
     ChannelService channelService;
 
 
-
     @GetMapping("/current-user")
     public ApiResponse<UserResponse> getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -42,25 +41,6 @@ public class UserController {
         return ApiResponse.<UserResponse>builder()
                 .data(UserMapper.toUserResponse(userService.getUserByUsername(username)))
                 .status(202)
-                .build();
-    }
-
-    @PutMapping("/add-role")
-    public ApiResponse<UserResponse> updateRole(@RequestParam(value = "roleName") String roleName) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByUsername(username);
-
-        return ApiResponse.<UserResponse>builder()
-                .data(userService.updateRoleUser(user, roleName))
-                .build();
-    }
-
-    @GetMapping("/get-all")
-    public ApiResponse<List<UserResponse>> getAllUser() {
-        return ApiResponse.<List<UserResponse>>builder()
-                .data(userService.getAllUser())
-                .status(200)
-                .message("Get all user for admin role")
                 .build();
     }
 
@@ -128,6 +108,48 @@ public class UserController {
                 .status(200)
                 .message("Check follow")
                 .data(this.followService.isFollowing(u.getId().toString(), channelId))
+                .build();
+    }
+
+    /*
+                FOR ADMIN
+     */
+    @PutMapping("/add-role")
+    public ApiResponse<UserResponse> updateRole(@RequestParam(value = "roleName") String roleName) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.getUserByUsername(username);
+
+        return ApiResponse.<UserResponse>builder()
+                .data(userService.updateRoleUser(user, roleName))
+                .build();
+    }
+
+    @GetMapping("/get-all")
+    public ApiResponse<List<UserResponse>> getAllUser() {
+        return ApiResponse.<List<UserResponse>>builder()
+                .data(userService.getAllUser())
+                .status(200)
+                .message("Get all user for admin role")
+                .build();
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<UserResponse>> searchUserByUsername(@RequestParam("query") String query) {
+        return ApiResponse.<List<UserResponse>>builder()
+                .data(userService.searchUserByUsername(query))
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteUser(@PathVariable(name = "id") String id) {
+        userService.deleteUser(id);
+        return ApiResponse.success(204, "Delete user successfully!");
+    }
+
+    @GetMapping("/total-users")
+    public ApiResponse<Integer> searchUserByUsername() {
+        return ApiResponse.<Integer>builder()
+                .data(userService.countTotalUsers())
                 .build();
     }
 }

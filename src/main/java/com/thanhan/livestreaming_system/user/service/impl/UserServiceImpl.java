@@ -82,9 +82,34 @@ public class UserServiceImpl implements UserService {
         return user.getId().toString();
     }
 
+    /*
+    *
+    * For administrator
+    *
+    * */
+
     @Override
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getAllUser() {
         return userRepository.findAll().stream().map(UserMapper::toUserResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteUser(String userId) {
+        User user = userRepository.findByStringId(UUID.fromString(userId)).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXIST));
+        userRepository.delete(user);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserResponse> searchUserByUsername(String username) {
+        return userRepository.searchByUsername(username).stream().map(UserMapper::toUserResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public Integer countTotalUsers() {
+        return userRepository.countUsersByRolesName();
     }
 }

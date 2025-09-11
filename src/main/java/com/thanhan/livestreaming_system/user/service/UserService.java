@@ -14,5 +14,9 @@ public interface UserService {
     String getUserIdByUsername(String username);
     UserResponse updateRoleUser(User user, String roleName);
 
+    //Admin service
     List<UserResponse> getAllUser();
+    void deleteUser(String userId);
+    List<UserResponse> searchUserByUsername(String username);
+    Integer countTotalUsers();
 }

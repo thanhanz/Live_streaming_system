@@ -3,6 +3,7 @@ package com.thanhan.livestreaming_system.user.controller;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelCreationRequest;
 import com.thanhan.livestreaming_system.user.dto.request.ChannelUpdateRequest;
+import com.thanhan.livestreaming_system.user.dto.response.ChannelAdminResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelCacheResponse;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
@@ -76,6 +77,31 @@ public class ChannelController {
         return ApiResponse.<Long>builder()
                 .status(201)
                 .data(channelService.countFollower(Long.valueOf(channelId)))
+                .build();
+    }
+
+    /**
+     * FOR ADMIN
+     */
+
+    @GetMapping("/get-all")
+    public ApiResponse<List<ChannelAdminResponse>> getAllChannels() {
+        return ApiResponse.<List<ChannelAdminResponse>>builder()
+                .data(channelService.getAllChannels())
+                .build();
+    }
+
+    @GetMapping("/total")
+    public ApiResponse<Integer> getTotalChannels() {
+        return ApiResponse.<Integer>builder()
+                .data(channelService.countTotalChannels())
+                .build();
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<ChannelAdminResponse>> searchChannelName(@RequestParam("query") String query) {
+        return ApiResponse.<List<ChannelAdminResponse>>builder()
+                .data(channelService.searchChannels(query))
                 .build();
     }
 }

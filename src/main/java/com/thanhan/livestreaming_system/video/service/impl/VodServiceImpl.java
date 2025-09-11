@@ -40,6 +40,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -75,31 +76,48 @@ public class VodServiceImpl implements VodService {
 
     @Override
     public PaginationResponse<VodResponse> getAllVodsByChannelId(Long channelId, VodGetRequest request) {
-        Sort.Direction direction = Sort.Direction.fromOptionalString(request.getOrder()).orElse(Sort.Direction.DESC);
-        String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
+        int pageSize = request.getLimit();
 
-        Channel c = channelService.findById(channelId);
-        ChannelCacheResponse channelResponse = new ChannelCacheResponse(c.getId().toString(), c.getDisplayName(), c.getAvatarUrl(), c.getOwner().getId().toString() ,c.getFollowersCount().longValue());
+        Pageable pageable = PageRequest.of(0, pageSize);
 
-        Pageable pageable = PageRequest.of(request.getPage() - 1, request.getLimit(), Sort.by(direction, sortBy));
+        List<Vod> vods = new ArrayList<>();
 
-        Page<Vod> pageResult = vodRepository.getPaginationByChannelId(channelId, pageable);
+        if (request.nextCursor != null) {
+            Instant cursor = Instant.parse((String) request.getNextCursor());
+            vods = vodRepository.getVodsByChannelId(channelId, cursor, pageable);
+        } else {
+            vods = vodRepository.getVodsByChannelId(channelId, Instant.now(), pageable);
+        }
 
-        List<Vod> items = new ArrayList<>(pageResult.getContent());
-        List<VodResponse> result = items.stream().map(vod -> {
+        Channel channel = channelService.findById(channelId);
+        ChannelCacheResponse channelResponse = new ChannelCacheResponse(
+                channel.getId().toString(),
+                channel.getDisplayName(),
+                channel.getAvatarUrl(),
+                channel.getOwner().getId().toString(),
+                channel.getFollowersCount().longValue()
+        );
+
+        boolean hasNext = vods.size() == request.getLimit();
+        Object nextCursor = null;
+
+        if (hasNext) {
+            nextCursor = vods.get(vods.size() - 1).getCreatedAt();
+        }
+
+        List<VodResponse> result = vods.stream().map(vod -> {
             String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
             Long view = getCurrentView(vod, pendingViewKey);
             return VodMapper.toVodResponse(vod, view, channelResponse);
         }).toList();
 
         return PaginationResponse.<VodResponse>builder()
-                .page(pageResult.getNumber() + 1)
-                .limit(pageResult.getSize())
-                .totalItems((int) pageResult.getTotalElements())
-                .totalPage(pageResult.getTotalPages())
+                .hasNext(hasNext)
+                .nextCursor(nextCursor)
                 .items(result)
                 .build();
     }
+
 
     @Override
     @Transactional
@@ -307,5 +325,78 @@ public class VodServiceImpl implements VodService {
             ChannelCacheResponse channelRes = getChannelCache(vod);
             return VodMapper.toVodResponse(vod, getCurrentView(vod, pendingViewKey), channelRes);
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * For administrator
+     */
+
+    @Override
+    public PaginationResponse<VodAdminResponse> getAllVods(VodGetRequest request) {
+        Pageable pageable = PageRequest.of(0, request.getLimit());
+        List<Vod> vods;
+
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
+        String order = request.getOrder() != null ? request.getOrder() : "DESC";
+
+        if ("views".equals(sortBy)) {
+            if (request.nextCursor != null) {
+                Long cursor = ((Number) request.getNextCursor()).longValue();
+                if ("ASC".equals(order)) {
+                    vods = vodRepository.findNextPageByViewsAsc(cursor, pageable);
+                } else {
+                    vods = vodRepository.findNextPageByViewsDesc(cursor, pageable);
+                }
+            } else {
+                vods = vodRepository.findAll(
+                        PageRequest.of(0, request.getLimit(),
+                                Sort.by(Sort.Direction.fromString(order), "totalView"))
+                ).getContent();
+            }
+        } else { //"createdAt"
+            if (request.nextCursor != null) {
+                Instant cursor = Instant.parse((String) request.getNextCursor());
+                if ("ASC".equals(order))
+                    vods = vodRepository.findNextPageByCreatedAtAsc(cursor, pageable);
+                else
+                    vods = vodRepository.findNextPageByCreatedAtDesc(cursor, pageable);
+
+            } else {
+                vods = vodRepository.findAll(
+                        PageRequest.of(0, request.getLimit(),
+                                Sort.by(Sort.Direction.fromString(order), "createdAt"))
+                ).getContent();
+
+            }
+        }
+
+        boolean hasNext = vods.size() == request.getLimit();
+        Object nextCursor = null;
+
+        if (hasNext) {
+            Vod lastVod = vods.get(vods.size() - 1);
+            if ("views".equals(sortBy)) {
+                nextCursor = lastVod.getTotalView();
+            } else {
+                nextCursor = lastVod.getCreatedAt();
+            }
+        }
+
+        return PaginationResponse.<VodAdminResponse>builder()
+                .hasNext(hasNext)
+                .nextCursor(nextCursor)
+                .items(vods.stream().map(VodMapper::toAdminResponse).toList())
+                .build();
+    }
+
+    @Override
+    public List<VodAdminResponse> searchVodsByTitleOrChannelName(String query) {
+        return vodRepository.searchVodsByChannelNameOrTitle(query).stream().map(VodMapper::toAdminResponse).toList();
+    }
+
+
+    @Override
+    public Integer countTotalVods() {
+        return vodRepository.countAll();
     }
 }

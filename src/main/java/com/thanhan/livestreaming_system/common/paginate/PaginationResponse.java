@@ -12,9 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class PaginationResponse<T> {
-    public int page;
-    public int limit;
-    public int totalItems;
-    public long totalPage;
+    public Object nextCursor;
+    public boolean hasNext;
     public List<T> items;
 }

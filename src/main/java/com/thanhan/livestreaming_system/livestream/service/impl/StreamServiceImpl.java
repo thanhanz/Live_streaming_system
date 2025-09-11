@@ -258,4 +258,9 @@ public class StreamServiceImpl implements StreamService {
 
         return StreamMapper.toStreamCardResponse(stream, currentViewer);
     }
+
+    @Override
+    public Integer getLiveStreamCountByChannelId(Long channelId) {
+        return 0;
+    }
 }

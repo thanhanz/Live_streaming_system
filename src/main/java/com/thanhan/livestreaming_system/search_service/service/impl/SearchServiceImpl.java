@@ -73,11 +73,12 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public void deleteDocument(String id, String type) {
         String doc_id = type + "_" + id;
-        SearchDocument doc = searchDocumentRepository.findById(doc_id).orElseThrow(() -> new RuntimeException("Document not found in elastic search"));
-
-        //Delete
-        log.info("[ElasticSearch] delete document: " + doc.getId());
-        searchDocumentRepository.delete(doc);
+        searchDocumentRepository.findById(doc_id).ifPresentOrElse(doc -> {
+            log.info("[ElasticSearch] delete document: {}", doc.getId());
+            searchDocumentRepository.delete(doc);
+        }, () -> {
+            log.warn("[ElasticSearch] document {} not found, skip delete", doc_id);
+        });
     }
 
     private SearchDocument mapToDocument(SearchEvent event) {

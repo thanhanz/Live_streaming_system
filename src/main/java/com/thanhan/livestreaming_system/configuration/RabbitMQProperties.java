@@ -14,6 +14,7 @@ public class RabbitMQProperties {
     private Exchanges exchange;
     private Transcode transcode;
     private Search search;
+    private SendEmail email;
 
     @Getter @Setter
     public static class Exchanges {
@@ -35,6 +36,13 @@ public class RabbitMQProperties {
 
     @Getter @Setter
     public static class Queues {
+        private String queue;
+        private String routingKey;
+    }
+
+    @Getter @Setter
+    public static class SendEmail {
+        private String exchange;
         private String queue;
         private String routingKey;
     }

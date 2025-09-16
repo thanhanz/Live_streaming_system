@@ -42,7 +42,6 @@ public class FFmpegServiceImpl implements FFmpegService {
     private final S3Client s3Client;
     private final VodService vodService;
     private final R2Service r2Service;
-    private final VideoUploadProducer videoUploadProducer;
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
@@ -244,7 +243,7 @@ public class FFmpegServiceImpl implements FFmpegService {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        log.info("In process: {} ", line); // Bạn cần giữ dòng này để thấy lỗi cụ thể
+                        log.info("In process: {} ", line);
                     }
 
                     int exitCode = process.waitFor();
@@ -262,8 +261,6 @@ public class FFmpegServiceImpl implements FFmpegService {
                     String m3u8UrlInR2 = getPublicR2Url() + "channels/" + channelId.toString() +"/vods_hls/" + vodId.toString() + "/master.m3u8";
 
                     Vod transcodedVod = vodService.updateVodUrl(m3u8UrlInR2, vodId);
-                    //Send when stored video in R2 success
-                    videoUploadProducer.sendMessageToUpdateSearchService(transcodedVod, "create");
 
                     //Remove raw video when upload
                     r2Service.deleteFileFromR2(request.vodStorageKey());

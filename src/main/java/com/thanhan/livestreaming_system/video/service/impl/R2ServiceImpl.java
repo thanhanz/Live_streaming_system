@@ -97,7 +97,7 @@ public class R2ServiceImpl implements R2Service {
                 .build();
 
         s3Client.completeMultipartUpload(request);
-        videoUploadProducer.sendMessage(new VodTranscodeRequest(Long.valueOf(channelId), Long.valueOf(vodId),locationKey));
+        videoUploadProducer.sendMessageToTranscode(new VodTranscodeRequest(Long.valueOf(channelId), Long.valueOf(vodId),locationKey));
     }
 
     @Override

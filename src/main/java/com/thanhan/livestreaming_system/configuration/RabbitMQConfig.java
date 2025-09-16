@@ -38,6 +38,9 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange sendEmailExchange() {return new TopicExchange(properties.getEmail().getExchange());}
+
+    @Bean
     public Queue liveQueue() {
         return new Queue(properties.getTranscode().getLive().getQueue(),  true);
     }
@@ -71,6 +74,16 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(searchQueue)
                 .to(searchExchange)
                 .with(properties.getSearch().getRoutingKey());
+    }
+
+    @Bean Queue sendEmailQueue() {
+        return new Queue(properties.getEmail().getQueue(),  true);
+    }
+
+    @Bean Binding sendEmailBinding(Queue sendEmailQueue, TopicExchange sendEmailExchange) {
+        return BindingBuilder.bind(sendEmailQueue)
+                .to(sendEmailExchange)
+                .with(properties.getEmail().getRoutingKey());
     }
 }
 

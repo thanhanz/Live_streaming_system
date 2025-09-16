@@ -204,7 +204,12 @@ public class VodServiceImpl implements VodService {
     public Vod updateVodUrl(String url, Long id) {
         Vod vod = vodRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Video not found"));
         vod.setVideoUrl(url);
-        return vodRepository.save(vod);
+
+        Vod updatedVod = vodRepository.save(vod);
+
+        //Send when stored video in R2 success
+        videoUploadProducer.sendMessageToUpdateSearchService(updatedVod, "create");
+        return updatedVod;
     }
 
     @Override

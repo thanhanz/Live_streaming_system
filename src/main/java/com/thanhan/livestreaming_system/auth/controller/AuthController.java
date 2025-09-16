@@ -11,6 +11,7 @@ import com.thanhan.livestreaming_system.auth.dto.response.IntrospectResponse;
 import com.thanhan.livestreaming_system.auth.service.AuthenticationService;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.user.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,6 +34,40 @@ import java.time.Duration;
 public class AuthController {
 
     AuthenticationService authenticationService;
+
+    @GetMapping("/social-login")
+    public ApiResponse createGoogleLoginUrl(@RequestParam("login_type") String loginType, HttpSession session) {
+        loginType = loginType.trim().toLowerCase();
+
+        String url = authenticationService.generateUrlLoginType(loginType, session);
+
+        return ApiResponse.builder()
+                .data(url)
+                .build();
+    }
+
+    @GetMapping("/callback/google")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> googleLogin(@RequestParam String code,
+                                                                           @RequestParam String state,
+                                                                           HttpSession session) throws ParseException, JOSEException {
+        AuthenticationResponse result = authenticationService.googleLoginCallback(code, state, session);
+
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", result.getRefreshToken())
+                .httpOnly(true)
+//                .secure(false) //Set secure = true khi gui bang HTTPS
+                .path("/")
+                .maxAge(Duration.ofDays(15))
+                .sameSite("Lax")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(ApiResponse.<AuthenticationResponse>builder()
+                        .message("Successfully logged in by google")
+                        .data(result)
+                        .build());
+    }
+
 
     @PostMapping("/log-in")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> logIn(@RequestBody AuthenticationRequest request) throws JOSEException {

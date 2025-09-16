@@ -3,25 +3,29 @@ package com.thanhan.livestreaming_system.user.service.impl;
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
 import com.thanhan.livestreaming_system.user.dto.mapper.UserMapper;
+import com.thanhan.livestreaming_system.user.dto.request.BanAccountEvent;
+import com.thanhan.livestreaming_system.user.dto.request.BanUserRequest;
+import com.thanhan.livestreaming_system.user.dto.response.UserBannedResponse;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;
+import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.Role;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.dto.request.UserCreationRequest;
+import com.thanhan.livestreaming_system.user.messaging.BanAccountPublisher;
 import com.thanhan.livestreaming_system.user.repository.RoleRepository;
 import com.thanhan.livestreaming_system.user.repository.UserRepository;
+import com.thanhan.livestreaming_system.user.service.ChannelService;
 import com.thanhan.livestreaming_system.user.service.UserService;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -34,6 +38,8 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     PasswordEncoder passwordEncoder;
+    BanAccountPublisher banAccountPublisher;
+
 
     @Override
     public UserResponse register(UserCreationRequest request) {
@@ -111,5 +117,34 @@ public class UserServiceImpl implements UserService {
     @PreAuthorize("hasRole('ADMIN')")
     public Integer countTotalUsers() {
         return userRepository.countUsersByRolesName();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public UserBannedResponse banUsers(BanUserRequest request) {
+        User user = userRepository.findById(UUID.fromString(request.userId())).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(false);
+
+        User updatedUser = userRepository.save(user);
+        String subject = "Account Banned in Livestream Website";
+        String body = "Your account has been banned: " + request.reason();
+        final String action = "ban";
+        banAccountPublisher.sendEmailMessage(updatedUser.getId().toString(),updatedUser.getEmail(), subject, body, action);
+
+        return new UserBannedResponse(updatedUser.getUsername(), updatedUser.getEmail(), request.reason());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public void unbanUsers(String userId) {
+        User user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(true);
+        User updatedUser = userRepository.save(user);
+        final String action = "unban";
+
+        banAccountPublisher.sendEmailMessage(updatedUser.getId().toString(), null, null, null ,action);
+        log.info("User {} unbanned", user.getUsername());
     }
 }

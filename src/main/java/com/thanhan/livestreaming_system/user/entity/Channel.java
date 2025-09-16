@@ -44,6 +44,8 @@ public class Channel {
     @UpdateTimestamp
     private Instant updatedAt;
 
+    @Column(name = "active")
+    private Boolean active = true;
 
     private Integer followersCount = 0;
 

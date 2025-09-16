@@ -25,4 +25,6 @@ public interface ChannelService {
     List<ChannelAdminResponse> getAllChannels();
     Integer countTotalChannels();
     List<ChannelAdminResponse> searchChannels(String keyword);
+    void banOrUnbanChannel(Long channelId);
+
 }

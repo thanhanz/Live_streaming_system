@@ -206,4 +206,11 @@ public class ChannelServiceImpl implements ChannelService {
     public List<ChannelAdminResponse> searchChannels(String keyword) {
         return channelRepository.searchChannelName(keyword);
     }
+
+    @Override
+    public void banOrUnbanChannel(Long channelId) {
+        Channel channel = channelRepository.getChannelById(channelId).orElseThrow(() -> new RuntimeException("Channel not found"));
+        channel.setActive(!channel.getActive());
+        channelRepository.save(channel);
+    }
 }

@@ -8,6 +8,8 @@ import java.util.Set;
 public record UserResponse (
         String id,
         String username,
+        Boolean active,
+        String avatar,
         String firstName,
         String lastName,
         String email,

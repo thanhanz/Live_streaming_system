@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.Token;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -36,11 +37,9 @@ import static org.springframework.http.HttpMethod.*;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final String[] PUBLIC_ENDPOINTS = { "/auth/log-in",
-                                                "/auth/introspect",
+    private final String[] PUBLIC_ENDPOINTS = { "/auth/**",
                                                 "/api/users/register",
-                                                "/auth/refresh",
-                                                "/auth/logout",
+
 //                                                "/api/stream/**",
                                                 "/watch", //Test in thymeleaf
                                                 "/api/vods/**"
@@ -60,7 +59,6 @@ public class SecurityConfig {
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()
                                         .anyRequest().authenticated());
-
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
                                 //Covert "SCOPE_... to ROLE_..."

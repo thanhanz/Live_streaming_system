@@ -8,6 +8,7 @@ import com.thanhan.livestreaming_system.auth.dto.request.LogoutRequest;
 import com.thanhan.livestreaming_system.auth.dto.request.RefreshTokenRequest;
 import com.thanhan.livestreaming_system.auth.dto.response.AuthenticationResponse;
 import com.thanhan.livestreaming_system.auth.dto.response.IntrospectResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.text.ParseException;
 
@@ -17,4 +18,7 @@ public interface AuthenticationService {
     IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException;
     AuthenticationResponse refreshToken(String refreshToken) throws JOSEException;
     void logout(LogoutRequest request, String refreshToken) throws JOSEException, ParseException;
+    String generateUrlLoginType(String loginType, HttpSession session);
+
+    AuthenticationResponse googleLoginCallback(String code,String state, HttpSession session) throws ParseException, JOSEException;
 }

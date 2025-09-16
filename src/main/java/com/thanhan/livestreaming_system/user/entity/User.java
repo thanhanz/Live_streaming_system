@@ -47,6 +47,15 @@ public class User {
     @UpdateTimestamp
     private Instant updatedAt;
 
+    @Column(name = "active")
+    private Boolean active = true;
+
+    @Column(name = "provider")
+    @Nullable
+    @Enumerated(EnumType.STRING)
+    private Provider provider;
+
+    private String providerId;
     @Nullable
     @Column(name = "avatar")
     private String avatar;
@@ -57,5 +66,6 @@ public class User {
     @OneToOne(mappedBy = "owner",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Channel channel;
+
 
 }

@@ -39,10 +39,12 @@ public class VideoUploadProducer {
 
     private String prefixSearchRoutingKey = "event.search.vod.";
 
-    public void sendMessage(VodTranscodeRequest request) {
+
+    public void sendMessageToTranscode(VodTranscodeRequest request) {
         rabbitTemplate.convertAndSend(vodTranscodeExchange, vodTranscodeRoutingKey, request);
     }
 
+    //Update in elastich search
     public void sendMessageToUpdateSearchService(Vod vod, String action) {
         //Mapper vod to Document
         VodToDocumentSearch doc = VodMapper.toDocumentSearch(vod);

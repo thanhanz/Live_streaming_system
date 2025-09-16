@@ -9,6 +9,7 @@ import com.thanhan.livestreaming_system.auth.dto.request.AuthenticationRequest;
 import com.thanhan.livestreaming_system.auth.dto.request.IntrospectRequest;
 import com.thanhan.livestreaming_system.auth.dto.request.LogoutRequest;
 import com.thanhan.livestreaming_system.auth.dto.response.AuthenticationResponse;
+import com.thanhan.livestreaming_system.auth.dto.response.GoogleTokenResponse;
 import com.thanhan.livestreaming_system.auth.dto.response.IntrospectResponse;
 import com.thanhan.livestreaming_system.auth.entity.RefreshToken;
 import com.thanhan.livestreaming_system.auth.repository.RefreshTokenRepository;
@@ -16,9 +17,13 @@ import com.thanhan.livestreaming_system.auth.service.AuthenticationService;
 import com.thanhan.livestreaming_system.auth.service.RedisService;
 import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.exception.ErrorCode;
+import com.thanhan.livestreaming_system.user.entity.Provider;
+import com.thanhan.livestreaming_system.user.entity.Role;
 import com.thanhan.livestreaming_system.user.entity.User;
 import com.thanhan.livestreaming_system.user.repository.UserRepository;
+import com.thanhan.livestreaming_system.user.service.RoleService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpSession;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,13 +35,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -47,10 +52,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     UserRepository userRepository;
     RefreshTokenRepository refreshTokenRepository;
     RedisService redisService;
-
+    RestTemplate restTemplate = new RestTemplate();
+    RoleService roleService;
     @NonFinal
     @Value("${jwt.signer-key}")
     protected String SIGNER_KEY;
+
+    @NonFinal
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
+
+    @NonFinal
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+
+    @NonFinal
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String googleReturnUri;
 
     protected final long expirationTime = 1; //15' cho access Token
 
@@ -66,6 +84,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         if (!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        if (!user.getActive())
+            throw new AppException(ErrorCode.USER_ACCOUNT_BANNED);
 
         var token = generateToken(user);
         var refreshToken = UUID.randomUUID().toString();
@@ -165,14 +186,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             object.sign(new MACSigner(SIGNER_KEY.getBytes()));
             return object.serialize();
         } catch (JOSEException e) {
-            log.error("Cannot create token: ",e.getMessage());
+            log.error("Cannot create token: ", e.getMessage());
             throw new RuntimeException(e);
         }
     }
 
     private String buildScope(User user) {
         StringJoiner scopeJoiner = new StringJoiner(" ");
-        if(!CollectionUtils.isEmpty(user.getRoles()))
+        if (!CollectionUtils.isEmpty(user.getRoles()))
             user.getRoles().forEach(roles -> {
                 scopeJoiner.add("ROLE_" + roles.getName());
             });
@@ -180,4 +201,94 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return scopeJoiner.toString();
     }
 
+    @Override
+    public String generateUrlLoginType(String loginType, HttpSession session) {
+        switch (loginType) {
+            case "google":
+                String state = UUID.randomUUID().toString();
+                String nonce = UUID.randomUUID().toString();
+
+                session.setAttribute("oauth2_state", state);
+                session.setAttribute("oauth2_nonce", nonce);
+
+                return UriComponentsBuilder.fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
+                        .queryParam("client_id", googleClientId)
+                        .queryParam("redirect_uri", googleReturnUri)
+                        .queryParam("response_type", "code")
+                        .queryParam("scope", "openid profile email")
+                        .queryParam("state", state)
+                        .queryParam("nonce", nonce)
+                        .build().toUriString();
+        }
+
+        throw new IllegalArgumentException("Unsupported login type: " + loginType);
+    }
+
+    @Override
+    @Transactional
+    public AuthenticationResponse googleLoginCallback(String code, String state, HttpSession session) throws ParseException, JOSEException {
+
+        String sessionState = (String) session.getAttribute("oauth2_state");
+        if (sessionState == null || !sessionState.equals(state)) {
+            throw new RuntimeException("Invalid OAuth2 state");
+        }
+
+        String tokenUrl = "https://oauth2.googleapis.com/token";
+
+        Map<String, String> params = new HashMap<>();
+        params.put("code", code);
+        params.put("client_id", googleClientId);
+        params.put("client_secret", googleClientSecret);
+        params.put("redirect_uri", googleReturnUri);
+        params.put("grant_type", "authorization_code");
+
+        GoogleTokenResponse tokenResponse = restTemplate.postForObject(
+                tokenUrl, params, GoogleTokenResponse.class);
+
+        if (tokenResponse == null || tokenResponse.idToken() == null) {
+            throw new RuntimeException("Cannot get id_token from Google");
+        }
+
+        SignedJWT signedJWT = SignedJWT.parse(tokenResponse.idToken());
+        JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
+
+        String sessionNonce = (String) session.getAttribute("oauth2_nonce");
+        if (!claims.getStringClaim("nonce").equals(sessionNonce)) {
+            throw new RuntimeException("Invalid nonce");
+        }
+
+        String providerId = claims.getSubject();
+        String email = claims.getStringClaim("email");
+        String name = claims.getStringClaim("name");
+        String picture = claims.getStringClaim("picture");
+
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setUsername(name);
+                    newUser.setAvatar(picture);
+                    newUser.setProvider(Provider.GOOGLE);
+                    newUser.setProviderId(providerId);
+                    newUser.setActive(true);
+                    Role userRole = roleService.getRole("USER");
+                    Set<Role> roles = new HashSet<>();
+                    roles.add(userRole);
+                    newUser.setRoles(roles);
+                    return userRepository.save(newUser);
+                });
+
+        if (!user.getActive())
+            throw new AppException(ErrorCode.USER_ACCOUNT_BANNED);
+
+        String accessToken = generateToken(user);
+        String refreshToken = UUID.randomUUID().toString();
+        createNewRefreshToken(refreshToken, user);
+
+        return AuthenticationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .isAuthenticated(true)
+                .build();
+    }
 }

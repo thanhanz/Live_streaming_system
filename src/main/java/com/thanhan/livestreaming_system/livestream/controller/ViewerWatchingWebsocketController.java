@@ -27,6 +27,7 @@ public class ViewerWatchingWebsocketController {
     RedisTemplate<String, String> redisTemplate;
 
 
+    //Join stream với score là thời gian truy cập vào.
     @MessageMapping("/viewer/join")
     public void handleJoin(@Payload Map<String, String> payload, StompHeaderAccessor accessor) {
         String sessionId = accessor.getSessionId();
@@ -44,14 +45,16 @@ public class ViewerWatchingWebsocketController {
         sendConcurrencyViewersToSub(streamId);
     }
 
-    //For checking user is watching (in 30s - 60s)
+    //Each time (setInterval in Frontend) call this API to update score (
     @MessageMapping("/viewer/heartbeat") //Update ZSet score for each sessionId
     public void handleHeartbeat(@Payload Map<String, String> payload, StompHeaderAccessor accessor) {
+        //Check sessionId and update time
         String sessionId = accessor.getSessionId();
         Long now = System.currentTimeMillis();
+
         String streamId = payload.get("streamId");
         String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
-        redisTemplate.opsForZSet().add(concurrencyViewersKey, sessionId, now);
+        redisTemplate.opsForZSet().add(concurrencyViewersKey, sessionId, now); //if exist -> just update score (now)
     }
 
     private void sendConcurrencyViewersToSub(String streamId) {

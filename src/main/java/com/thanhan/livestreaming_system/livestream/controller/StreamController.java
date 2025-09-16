@@ -98,7 +98,7 @@ public class StreamController {
                     .message("Invalid stream key")
                     .build();
         }
-
+        //Send event start transcode livestream
 //        streamTranscodeProducer.sendMessage(request);
 
         Stream stream = streamService.getLiveStreamByStreamKey(request);
@@ -119,8 +119,10 @@ public class StreamController {
         Stream stream = streamService.getLiveStreamByStreamKey(streamKey);
         Long channelId = stream.getChannel().getId();
 
+        //Send message channel stop livestream in cache
         websocketService.sentLiveStreamStatus(channelId, "stopped");
 
+        //Send event remove data livestream in ES
         streamTranscodeProducer.sendToSearchConsumer(stream,"stopped");
 
         log.info("Send message: [STOPPED] with channelId: " + channelId);
@@ -194,7 +196,7 @@ public class StreamController {
                     .body(resource);
 
         } catch (Exception e) {
-            log.error("Error downloading and zipping recordings", e);
+            log.error("Error downloading recordings", e);
             return ResponseEntity.internalServerError().build();
         }
     }

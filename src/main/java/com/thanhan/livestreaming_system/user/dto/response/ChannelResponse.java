@@ -7,6 +7,7 @@ import java.time.Instant;
 public record ChannelResponse(
         String id,
         String ownerId,
+        Boolean active,
         String displayName,
         String description,
         String avatar,

@@ -4,7 +4,9 @@ import com.thanhan.livestreaming_system.common.exception.AppException;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 import com.thanhan.livestreaming_system.user.dto.mapper.UserMapper;
+import com.thanhan.livestreaming_system.user.dto.request.BanUserRequest;
 import com.thanhan.livestreaming_system.user.dto.response.ChannelResponse;
+import com.thanhan.livestreaming_system.user.dto.response.UserBannedResponse;
 import com.thanhan.livestreaming_system.user.dto.response.UserResponse;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import com.thanhan.livestreaming_system.user.entity.User;
@@ -151,5 +153,20 @@ public class UserController {
         return ApiResponse.<Integer>builder()
                 .data(userService.countTotalUsers())
                 .build();
+    }
+
+    @PostMapping("/ban-user")
+    public ApiResponse<UserBannedResponse> banAccountUser(@RequestBody BanUserRequest request) {
+        return ApiResponse.<UserBannedResponse>builder()
+                .data(userService.banUsers(request))
+                .status(201)
+                .message("Banned user: " + request.userId())
+                .build();
+    }
+
+    @PostMapping("/unban-user")
+    public ApiResponse<UserBannedResponse> unbanAccountUser(@RequestParam String userId) {
+        userService.unbanUsers(userId);
+        return ApiResponse.success(201, "Unban user success" );
     }
 }

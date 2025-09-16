@@ -9,4 +9,5 @@ public interface RoleService {
     Role createRole(RoleRequest request);
     List<Role> getAll();
     void deleteRole(String roleName);
+    Role getRole(String roleName);
 }

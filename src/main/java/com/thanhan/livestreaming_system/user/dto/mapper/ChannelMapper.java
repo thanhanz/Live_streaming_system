@@ -13,6 +13,7 @@ public class ChannelMapper {
         return new ChannelResponse(
                 channel.getId().toString(),
                 channel.getOwner().getId().toString(),
+                channel.getActive(),
                 channel.getDisplayName(),
                 channel.getDescription(),
                 channel.getAvatarUrl(),
@@ -47,8 +48,6 @@ public class ChannelMapper {
     public static ChannelCardResponse toChannelCardResponse(Channel channel) {
         return new ChannelCardResponse(channel.getId().toString(), channel.getDisplayName(), channel.getAvatarUrl());
     }
-
-
 
     public static Channel toChannel(String displayName, String description, User owner) {
         Channel channel = new Channel();

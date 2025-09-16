@@ -23,6 +23,8 @@ public class UserMapper {
         return new UserResponse(
                 user.getId().toString(),
                 user.getUsername(),
+                user.getActive(),
+                user.getAvatar(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),

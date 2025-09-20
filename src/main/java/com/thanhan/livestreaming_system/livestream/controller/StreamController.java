@@ -1,6 +1,8 @@
 package com.thanhan.livestreaming_system.livestream.controller;
 
+import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.common.response.ApiResponse;
+import com.thanhan.livestreaming_system.livestream.dto.request.PaginateGetStreamRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
@@ -99,7 +101,7 @@ public class StreamController {
                     .build();
         }
         //Send event start transcode livestream
-//        streamTranscodeProducer.sendMessage(request);
+        streamTranscodeProducer.sendMessage(request);
 
         Stream stream = streamService.getLiveStreamByStreamKey(request);
         Long channelId = stream.getChannel().getId();
@@ -214,5 +216,23 @@ public class StreamController {
         return ApiResponse.<List<StreamStatsResponse>>builder()
                 .status(201)
                 .data(streamService.statisticsStreams(year)).build();
+    }
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteLiveStream(@PathVariable("id") Long streamId) {
+        streamService.deleteLivestream(streamId);
+        return ApiResponse.success(204, "Deleted livestream: " + streamId);
+    }
+
+    @GetMapping("/get-all")
+    public ApiResponse<PaginationResponse<StreamAdminResponse>> getAllStreams(@RequestParam(required = false) Integer limit,
+                                                         @RequestParam(required = false) String sortBy,
+                                                         @RequestParam(required = false) String order,
+                                                         @RequestParam(required = false) String cursor) {
+        PaginateGetStreamRequest request = PaginateGetStreamRequest.of(limit, sortBy, order, cursor);
+
+        return ApiResponse.<PaginationResponse<StreamAdminResponse>>builder()
+                .data(streamService.getAllStreams(request))
+                .status(201).build();
+
     }
 }

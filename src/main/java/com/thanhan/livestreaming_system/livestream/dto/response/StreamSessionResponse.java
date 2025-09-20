@@ -11,6 +11,7 @@ public record StreamSessionResponse(
         String description,
         String thumbnailUrl,
         String status,
+        Boolean active,
         Instant createdAt,
         Instant endedAt,
         String streamKey,

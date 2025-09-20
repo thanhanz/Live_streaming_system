@@ -183,4 +183,11 @@ public class VodController {
                 .build();
     }
 
+    @GetMapping("/top5-viewest")
+    public ApiResponse<List<VodAdminResponse>> getTop5ViewestVod() throws AppException {
+        return ApiResponse.<List<VodAdminResponse>>builder()
+                .data(vodService.getTop5ViewestVod())
+                .build();
+    }
+
 }

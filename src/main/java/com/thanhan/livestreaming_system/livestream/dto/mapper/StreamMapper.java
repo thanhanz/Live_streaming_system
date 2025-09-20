@@ -1,13 +1,13 @@
 package com.thanhan.livestreaming_system.livestream.dto.mapper;
 
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamCardResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamHistoryResponse;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamSearchDocument;
-import com.thanhan.livestreaming_system.livestream.dto.response.StreamSessionResponse;
+import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
+import com.thanhan.livestreaming_system.livestream.entity.StreamStatus;
+import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import com.thanhan.livestreaming_system.user.dto.mapper.ChannelMapper;
 
 public class StreamMapper {
+
 
     public static StreamSessionResponse toStreamResponse(Stream stream, Integer currentViewer, Long totalFollowers) {
         return new StreamSessionResponse(
@@ -17,6 +17,7 @@ public class StreamMapper {
                 stream.getDescription(),
                 stream.getThumbnailUrl(),
                 stream.getStatus().name(),
+                stream.getActive(),
                 stream.getCreatedAt(),
                 stream.getEndedAt(),
                 stream.getStreamKey(),
@@ -57,6 +58,20 @@ public class StreamMapper {
                 stream.getCreatedAt(),
                 stream.getEndedAt(),
                 stream.getStreamKey()
+        );
+    }
+
+    public static StreamAdminResponse toAdminResponse(Stream stream, Long currentViews) {
+
+        return new StreamAdminResponse(
+                stream.getId().toString(),
+                stream.getTitle(),
+                stream.getChannel().getDisplayName(),
+                stream.getStatus().name(),
+                stream.getActive(),
+                currentViews,
+                stream.getCreatedAt(),
+                stream.getEndedAt()
         );
     }
 

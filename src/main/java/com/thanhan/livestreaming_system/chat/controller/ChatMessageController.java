@@ -17,6 +17,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,8 +50,11 @@ public class ChatMessageController  {
     }
 
     @MessageMapping("/chat/{streamId}/ban")
-    public ApiResponse<Void> banChatUser(@DestinationVariable String streamId, BanChatRequest request) {
-        chatMessageService.banUser(streamId, request);
+    public ApiResponse<Void> banChatUser(@DestinationVariable String streamId, BanChatRequest request, Principal principal) {
+        String username = principal.getName();
+        String currentUserId = userService.getUserIdByUsername(username);
+
+        chatMessageService.banUser(currentUserId, streamId, request);
         simpMessagingTemplate.convertAndSend("/livestream/topic/stream/" + streamId + "/ban", request);
 
         return ApiResponse.<Void>builder()

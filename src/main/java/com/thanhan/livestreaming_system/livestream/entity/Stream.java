@@ -58,4 +58,5 @@ public class Stream {
     @Column(name = "viewer_count")
     private Integer viewerCount = 0;
 
+    private Boolean active = true;
 }

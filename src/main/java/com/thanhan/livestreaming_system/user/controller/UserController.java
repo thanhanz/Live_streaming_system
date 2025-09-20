@@ -165,8 +165,8 @@ public class UserController {
     }
 
     @PostMapping("/unban-user")
-    public ApiResponse<UserBannedResponse> unbanAccountUser(@RequestParam String userId) {
-        userService.unbanUsers(userId);
+    public ApiResponse<UserBannedResponse> unbanAccountUser(@RequestBody BanUserRequest request) {
+        userService.unbanUsers(request.userId());
         return ApiResponse.success(201, "Unban user success" );
     }
 }

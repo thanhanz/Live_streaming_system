@@ -98,6 +98,8 @@ services:
       - VNP_TMNCODE=${VNP_TMNCODE}
       - OAUTH2-GOOGLE-CLIENT-ID=${OAUTH2-GOOGLE-CLIENT-ID}
       - OAUTH2-GOOGLE-CLIENT-SECRET=${OAUTH2-GOOGLE-CLIENT-SECRET}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
     volumes:
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
   elasticsearch:

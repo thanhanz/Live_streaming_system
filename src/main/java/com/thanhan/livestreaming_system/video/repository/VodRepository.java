@@ -52,4 +52,12 @@ public interface VodRepository extends JpaRepository<Vod, Long> {
             "GROUP BY MONTH(v.createdAt) " +
             "ORDER BY MONTH(v.createdAt)")
     List<VodStatisticResponse> statisticVods(@Param("year") Integer year);
+
+    @Query(value = "SELECT * " +
+                    "FROM vods v " +
+                    "WHERE v.video_url IS NOT NULL " +
+                    "AND v.channel_id IN (SELECT c.id FROM channels c WHERE c.active = true) " +
+                    "ORDER BY v.views DESC " +
+                    "LIMIT 5", nativeQuery = true)
+    List<Vod> getTop5ViewestVod();
 }

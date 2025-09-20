@@ -104,4 +104,11 @@ public class ChannelController {
                 .data(channelService.searchChannels(query))
                 .build();
     }
+
+    @GetMapping("/top3-followest")
+    public ApiResponse<List<ChannelAdminResponse>> getTop3Followest() {
+        return ApiResponse.<List<ChannelAdminResponse>>builder()
+                .data(channelService.getTop3Channels())
+                .build();
+    }
 }

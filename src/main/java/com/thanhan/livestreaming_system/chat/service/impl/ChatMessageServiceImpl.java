@@ -46,7 +46,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         Stream stream = streamService.getStreamByStreamId(streamId);
         String listBannedUserKey = ChatUtils.bannedChatKey(streamId);
 
-        if (redisTemplate.opsForHash().hasKey(listBannedUserKey, u.getId())) {
+        if (redisTemplate.opsForHash().hasKey(listBannedUserKey, u.getId().toString())) {
             throw new AppException(ErrorCode.USER_BANNED_CHAT);
         }
 
@@ -59,9 +59,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     @Transactional
-    public void banUser(String streamId, BanChatRequest request) {
+    public void banUser(String currentUserId, String streamId, BanChatRequest request) {
 
-        if (!isOwnerOfStream(request.userId(), streamId)) {
+
+        if (!isOwnerOfStream(currentUserId, streamId)) {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
 
@@ -99,7 +100,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     private boolean isOwnerOfStream(String userId, String streamId) {
         Stream stream = streamService.getStreamByStreamId(streamId);
-        return userId.equals(stream.getChannel().getOwner().getId());
+        return userId.equals(stream.getChannel().getOwner().getId().toString());
     }
 
 }

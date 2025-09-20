@@ -26,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -212,5 +214,11 @@ public class ChannelServiceImpl implements ChannelService {
         Channel channel = channelRepository.getChannelById(channelId).orElseThrow(() -> new RuntimeException("Channel not found"));
         channel.setActive(!channel.getActive());
         channelRepository.save(channel);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ChannelAdminResponse> getTop3Channels() {
+        return channelRepository.getTopChannels(PageRequest.of(0, 3));
     }
 }

@@ -1,7 +1,9 @@
 package com.thanhan.livestreaming_system.livestream.service.impl;
 
 import com.thanhan.livestreaming_system.chat.utils.ChatUtils;
+import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
 import com.thanhan.livestreaming_system.livestream.dto.mapper.StreamMapper;
+import com.thanhan.livestreaming_system.livestream.dto.request.PaginateGetStreamRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.*;
@@ -20,13 +22,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
 import java.time.Instant;
@@ -135,17 +140,17 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setEndedAt(Instant.now());
         streamRepository.save(streamSession);
 
-//        uploadRecordLivestreamToR2(streamKey);
+        uploadRecordLivestreamToR2(streamKey);
 
         String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamSession.getId().toString());
         String listBannedKey = ChatUtils.bannedChatKey(streamSession.getId().toString());
 
         if (redisTemplate.hasKey(concurrencyViewersKey)) {
-            redisTemplate.opsForZSet().remove(concurrencyViewersKey);
+            redisTemplate.delete(concurrencyViewersKey);
         }
 
         if (redisTemplate.hasKey(listBannedKey))
-            redisTemplate.opsForSet().remove(listBannedKey);
+            redisTemplate.delete(listBannedKey);
 
         log.info("Success upload to R2 with streamKey: " + streamSession.getStreamKey());
     }
@@ -194,7 +199,9 @@ public class StreamServiceImpl implements StreamService {
             throw new RuntimeException("Stream is not publish yet: " + streamId);
         }
 
-        Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+        String currentViewCountKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
+
+        Integer currentViewer = redisTemplate.opsForSet().size(currentViewCountKey).intValue();
         Long totalFollowers = channelService.countFollower(stream.getChannel().getId());
         return StreamMapper.toStreamResponse(stream, currentViewer, totalFollowers);
     }
@@ -252,8 +259,8 @@ public class StreamServiceImpl implements StreamService {
         if (stream == null) {
             throw new RuntimeException("Live stream not found in channel: " + channelId);
         }
-
-        Integer currentViewer = redisTemplate.opsForSet().size("live:viewer:" + stream.getId().toString()).intValue();
+        String currentViewsKey = StreamCacheKey.cacheConcurrencyViewers(stream.getId().toString());
+        Integer currentViewer = redisTemplate.opsForSet().size(currentViewsKey).intValue();
 
         return StreamMapper.toStreamCardResponse(stream, currentViewer);
     }
@@ -283,5 +290,80 @@ public class StreamServiceImpl implements StreamService {
             result.add(new StreamStatsResponse(month, totalStreams));
         }
         return result;
+    }
+
+    @Override
+    public void deleteLivestream(Long streamId) {
+        Stream stream = streamRepository.findById(streamId).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
+
+        String locationRecord = "recordings/" + stream.getStreamKey() + "/recording.mp4";
+
+        int index = stream.getThumbnailUrl().indexOf("vods");
+        if (index == -1)
+            throw new EntityNotFoundException("No thumbnail found in R2: " + streamId);
+        String locationThumbnail = stream.getThumbnailUrl().substring(index);
+        log.info("Location thumbnail: {}", locationThumbnail);
+        List<ObjectIdentifier> identifiers = List.of(
+                ObjectIdentifier.builder().key(locationThumbnail).build(),
+                ObjectIdentifier.builder().key(locationRecord).build()
+        );
+
+        DeleteObjectsRequest request = DeleteObjectsRequest.builder()
+                .delete(Delete.builder().objects(identifiers).build()) //
+                .bucket(R2Bucket)
+                .build();
+
+        s3Client.deleteObjects(request);
+        streamRepository.delete(stream);
+
+        log.info("Live stream deleted: {}", streamId);
+    }
+
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public PaginationResponse<StreamAdminResponse> getAllStreams(PaginateGetStreamRequest request) {
+        Pageable pageable = PageRequest.of(0, request.getLimit());
+
+        List<StreamAdminResponse> result = new ArrayList<>();
+        if (request.getNextCursor() != null) {
+            Instant cursor = Instant.parse((String) request.getNextCursor());
+            result = streamRepository.getAllStreamPaginate(cursor, pageable).stream().map(s -> {
+                Long views = 0L;
+                if (s.getStatus().name().equals("STREAMING")) {
+                    String viewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
+                    if (redisTemplate.hasKey(viewsKey))
+                        views = redisTemplate.opsForZSet().size(viewsKey);
+
+                    return StreamMapper.toAdminResponse(s, views);
+                } else
+                    return StreamMapper.toAdminResponse(s, s.getViewerCount().longValue());
+            }).collect(Collectors.toList());
+        } else {
+            result = streamRepository.findAll(PageRequest.of(0, request.getLimit(),
+                    Sort.by(Sort.Direction.fromString(request.getOrder()), request.getSortBy()))
+            ).getContent().stream().map(s -> {
+                Long views = 0L;
+                if (s.getStatus().name().equals("STREAMING")) {
+                    String viewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
+                    if (redisTemplate.hasKey(viewsKey))
+                        views = redisTemplate.opsForZSet().size(viewsKey);
+
+                    return StreamMapper.toAdminResponse(s, views);
+                } else
+                    return StreamMapper.toAdminResponse(s, s.getViewerCount().longValue());
+            }).collect(Collectors.toList());
+        }
+
+        boolean hasNextCursor = result.size() == request.getLimit();
+        Instant nextCursor = Instant.MIN;
+
+        if (hasNextCursor)
+            nextCursor = result.getLast().createdAt();
+        return PaginationResponse.<StreamAdminResponse>builder()
+                .items(result)
+                .hasNext(hasNextCursor)
+                .nextCursor(nextCursor)
+                .build();
     }
 }

@@ -35,5 +35,5 @@ public interface VodService {
     List<VodAdminResponse> searchVodsByTitleOrChannelName(String query);
     Long countTotalVods();
     List<VodStatisticResponse> statisticVods(Integer year);
-
+    List<VodAdminResponse> getTop5ViewestVod();
 }

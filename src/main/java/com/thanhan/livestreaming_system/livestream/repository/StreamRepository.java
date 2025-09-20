@@ -2,11 +2,13 @@ package com.thanhan.livestreaming_system.livestream.repository;
 
 import com.thanhan.livestreaming_system.livestream.dto.response.StreamStatsResponse;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,5 +35,10 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
             "FROM Stream s WHERE YEAR(s.createdAt) = :year AND s.status = 'FINISHED' " +
             "GROUP BY MONTH(s.createdAt) " +
             "ORDER BY MONTH(s.createdAt) ")
-    List<StreamStatsResponse> statisticStreams(@RequestParam("year")Integer year);
+    List<StreamStatsResponse> statisticStreams(@Param("year")Integer year);
+
+
+    @Query("SELECT s FROM Stream s WHERE s.createdAt < :createdAt AND s.status != 'PREPARING' ORDER BY s.createdAt DESC")
+    List<Stream> getAllStreamPaginate(@Param("createdAt") Instant cursor, Pageable pageable);
+
 }

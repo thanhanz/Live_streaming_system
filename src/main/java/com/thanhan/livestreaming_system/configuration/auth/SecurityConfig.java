@@ -39,9 +39,8 @@ public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS = { "/auth/**",
                                                 "/api/users/register",
-
-//                                                "/api/stream/**",
-                                                "/watch", //Test in thymeleaf
+                                                "/api/stream/on_publish",
+                                                "/api/stream/finish",
                                                 "/api/vods/**"
 
     };

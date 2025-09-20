@@ -1,5 +1,7 @@
 package com.thanhan.livestreaming_system.livestream.service;
 
+import com.thanhan.livestreaming_system.common.paginate.PaginationResponse;
+import com.thanhan.livestreaming_system.livestream.dto.request.PaginateGetStreamRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamOnPublishRequest;
 import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequest;
 import com.thanhan.livestreaming_system.livestream.dto.response.*;
@@ -24,4 +26,8 @@ public interface StreamService {
 
     Long countTotalStreams();
     List<StreamStatsResponse> statisticsStreams(Integer year);
+
+    void deleteLivestream(Long streamId);
+
+    PaginationResponse<StreamAdminResponse> getAllStreams(PaginateGetStreamRequest request);
 }

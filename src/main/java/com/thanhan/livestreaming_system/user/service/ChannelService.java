@@ -27,4 +27,5 @@ public interface ChannelService {
     List<ChannelAdminResponse> searchChannels(String keyword);
     void banOrUnbanChannel(Long channelId);
 
+    List<ChannelAdminResponse> getTop3Channels();
 }

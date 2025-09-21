@@ -8,4 +8,5 @@ import java.io.IOException;
 public interface FFmpegService {
     void transcodeToHls(String streamKey);
     void transcodeVodToHls(VodTranscodeRequest request) throws IOException;
+    void stopStreamingProcess(String streamKey);
 }

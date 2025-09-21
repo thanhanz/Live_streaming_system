@@ -9,7 +9,10 @@ import com.thanhan.livestreaming_system.livestream.dto.request.StreamPrepareRequ
 import com.thanhan.livestreaming_system.livestream.dto.response.*;
 import com.thanhan.livestreaming_system.livestream.entity.Stream;
 import com.thanhan.livestreaming_system.livestream.entity.StreamStatus;
+import com.thanhan.livestreaming_system.livestream.messaging.StreamTranscodeProducer;
 import com.thanhan.livestreaming_system.livestream.repository.StreamRepository;
+import com.thanhan.livestreaming_system.livestream.service.FFmpegService;
+import com.thanhan.livestreaming_system.livestream.service.LiveWebSocketService;
 import com.thanhan.livestreaming_system.livestream.service.StreamService;
 import com.thanhan.livestreaming_system.livestream.utils.StreamCacheKey;
 import com.thanhan.livestreaming_system.user.entity.Channel;
@@ -28,12 +31,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -50,6 +55,9 @@ public class StreamServiceImpl implements StreamService {
     final RedisTemplate<String, String> redisTemplate;
     final RedisTemplate<String, Object> objectRedisTemplate;
     final S3Client s3Client;
+    final FFmpegService ffmpegService;
+    final StreamTranscodeProducer streamTranscodeProducer;
+    final LiveWebSocketService websocketService;
 
     @Value("${cloudflare.r2.bucket}")
     String R2Bucket;
@@ -57,6 +65,8 @@ public class StreamServiceImpl implements StreamService {
     @Value("${cloudflare.r2.public-url-id}")
     private String publicR2Id;
 
+//    @Value("${}")
+    private String rtmpUrlHttp = "http://rtmp-server:81/control";
     /*
         Thay = ten domain chu khong nen su dung Id nay`
      */
@@ -120,6 +130,12 @@ public class StreamServiceImpl implements StreamService {
             return false;
         }
 
+        if (!streamSession.getActive()) {
+            log.error("=== REJECTING BANNED STREAM ===");
+            log.error("Stream ID: {}, Active: {}", streamSession.getId(), streamSession.getActive());
+            return false;
+        }
+
         streamSession.setStatus(StreamStatus.STREAMING);
         streamRepository.save(streamSession);
         return true;
@@ -138,12 +154,62 @@ public class StreamServiceImpl implements StreamService {
 
         streamSession.setStatus(StreamStatus.FINISHED);
         streamSession.setEndedAt(Instant.now());
-        streamRepository.save(streamSession);
+        Stream updatedStream = streamRepository.save(streamSession);
 
-        uploadRecordLivestreamToR2(streamKey);
+        finishDataLivestream(updatedStream);
+        log.info("Success upload to R2 with streamKey: " + streamSession.getStreamKey());
+    }
 
-        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(streamSession.getId().toString());
-        String listBannedKey = ChatUtils.bannedChatKey(streamSession.getId().toString());
+    @Override
+    public void startStreaming(String streamKey) throws IOException {
+        //Send event start transcode livestream
+        Stream stream = streamRepository.findByStreamKey(streamKey);
+        streamTranscodeProducer.sendMessage(streamKey);
+
+        Long channelId = stream.getChannel().getId();
+
+        websocketService.sentLiveStreamStatus(channelId, "streaming");
+        streamTranscodeProducer.sendToSearchConsumer(stream,"streaming");
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void banStream(String streamId) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        Stream streamSession = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new RuntimeException("Stream not found"));
+        streamSession.setStatus(StreamStatus.FINISHED);
+        streamSession.setEndedAt(Instant.now());
+        streamSession.setActive(false);
+        Stream bannedStream = streamRepository.save(streamSession);
+
+        String controlUrl = String.format("%s/drop/publisher?app=live&name=%s",
+                rtmpUrlHttp, bannedStream.getStreamKey());
+
+        ffmpegService.stopStreamingProcess(bannedStream.getStreamKey());
+        log.info("[STOPPED PROCESS STREAM]:  ", bannedStream.getStreamKey());
+        try {
+            restTemplate.getForEntity(controlUrl, null, String.class);
+            log.info("[STOPPED PUBLISHER (OBS) with]: " + streamId);
+        } catch (Exception e) {
+            log.error("Failed to ban stream: {}", bannedStream.getId(), e);
+        }
+
+        finishDataLivestream(bannedStream);
+    }
+
+    private void finishDataLivestream(Stream stream) {
+        uploadRecordLivestreamToR2(stream.getStreamKey());
+
+        String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(stream.getId().toString());
+        String listBannedKey = ChatUtils.bannedChatKey(stream.getId().toString());
+
+        //Send message channel stop livestream in cache
+        websocketService.sentLiveStreamStatus(stream.getChannel().getId(), "stopped");
+
+        //Send event remove data livestream in ES
+        streamTranscodeProducer.sendToSearchConsumer(stream,"stopped");
 
         if (redisTemplate.hasKey(concurrencyViewersKey)) {
             redisTemplate.delete(concurrencyViewersKey);
@@ -151,8 +217,6 @@ public class StreamServiceImpl implements StreamService {
 
         if (redisTemplate.hasKey(listBannedKey))
             redisTemplate.delete(listBannedKey);
-
-        log.info("Success upload to R2 with streamKey: " + streamSession.getStreamKey());
     }
 
     private void uploadRecordLivestreamToR2(String streamKey) {
@@ -325,35 +389,23 @@ public class StreamServiceImpl implements StreamService {
     public PaginationResponse<StreamAdminResponse> getAllStreams(PaginateGetStreamRequest request) {
         Pageable pageable = PageRequest.of(0, request.getLimit());
 
+        Instant cursor = Instant.now();
+
         List<StreamAdminResponse> result = new ArrayList<>();
-        if (request.getNextCursor() != null) {
-            Instant cursor = Instant.parse((String) request.getNextCursor());
-            result = streamRepository.getAllStreamPaginate(cursor, pageable).stream().map(s -> {
-                Long views = 0L;
-                if (s.getStatus().name().equals("STREAMING")) {
-                    String viewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
-                    if (redisTemplate.hasKey(viewsKey))
-                        views = redisTemplate.opsForZSet().size(viewsKey);
+        if (request.getNextCursor() != null)
+            cursor = Instant.parse((String) request.getNextCursor());
 
-                    return StreamMapper.toAdminResponse(s, views);
-                } else
-                    return StreamMapper.toAdminResponse(s, s.getViewerCount().longValue());
-            }).collect(Collectors.toList());
-        } else {
-            result = streamRepository.findAll(PageRequest.of(0, request.getLimit(),
-                    Sort.by(Sort.Direction.fromString(request.getOrder()), request.getSortBy()))
-            ).getContent().stream().map(s -> {
-                Long views = 0L;
-                if (s.getStatus().name().equals("STREAMING")) {
-                    String viewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
-                    if (redisTemplate.hasKey(viewsKey))
-                        views = redisTemplate.opsForZSet().size(viewsKey);
+        result = streamRepository.getAllStreamPaginate(cursor, pageable).stream().map(s -> {
+            Long views = 0L;
+            if (s.getStatus().name().equals("STREAMING")) {
+                String viewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
+                if (redisTemplate.hasKey(viewsKey))
+                    views = redisTemplate.opsForZSet().size(viewsKey);
 
-                    return StreamMapper.toAdminResponse(s, views);
-                } else
-                    return StreamMapper.toAdminResponse(s, s.getViewerCount().longValue());
-            }).collect(Collectors.toList());
-        }
+                return StreamMapper.toAdminResponse(s, views);
+            } else
+                return StreamMapper.toAdminResponse(s, s.getViewerCount().longValue());
+        }).collect(Collectors.toList());
 
         boolean hasNextCursor = result.size() == request.getLimit();
         Instant nextCursor = Instant.MIN;

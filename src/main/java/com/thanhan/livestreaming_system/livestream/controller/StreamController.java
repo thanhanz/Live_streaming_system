@@ -46,8 +46,6 @@ public class StreamController {
     private static final Logger log = LoggerFactory.getLogger(StreamController.class);
     final StreamService streamService;
     final S3Client s3Client;
-    final StreamTranscodeProducer streamTranscodeProducer;
-    private final LiveWebSocketService websocketService;
 
     @Value("${cloudflare.r2.bucket}")
     String R2Bucket;
@@ -100,14 +98,8 @@ public class StreamController {
                     .message("Invalid stream key")
                     .build();
         }
-        //Send event start transcode livestream
-        streamTranscodeProducer.sendMessage(request);
 
-        Stream stream = streamService.getLiveStreamByStreamKey(request);
-        Long channelId = stream.getChannel().getId();
-
-        websocketService.sentLiveStreamStatus(channelId, "streaming");
-        streamTranscodeProducer.sendToSearchConsumer(stream,"streaming");
+        streamService.startStreaming(request);
 
         return ApiResponse.<Void>builder()
                 .status(200)
@@ -118,16 +110,6 @@ public class StreamController {
     @PostMapping("/finish")
     public ApiResponse<Void> finish(@RequestParam("name") String streamKey) {
         streamService.finish(streamKey);
-        Stream stream = streamService.getLiveStreamByStreamKey(streamKey);
-        Long channelId = stream.getChannel().getId();
-
-        //Send message channel stop livestream in cache
-        websocketService.sentLiveStreamStatus(channelId, "stopped");
-
-        //Send event remove data livestream in ES
-        streamTranscodeProducer.sendToSearchConsumer(stream,"stopped");
-
-        log.info("Send message: [STOPPED] with channelId: " + channelId);
         return ApiResponse.<Void>builder()
                 .status(200)
                 .message("Your stream has been finished")
@@ -233,6 +215,13 @@ public class StreamController {
         return ApiResponse.<PaginationResponse<StreamAdminResponse>>builder()
                 .data(streamService.getAllStreams(request))
                 .status(201).build();
+    }
 
+    @PostMapping("/ban")
+    public ApiResponse<Void> banStream(@RequestParam("streamId") String streamId) {
+        streamService.banStream(streamId);
+
+        log.info("Banned stream: " + streamId);
+        return ApiResponse.success(204, "Banned!");
     }
 }

@@ -27,9 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -42,6 +40,7 @@ public class FFmpegServiceImpl implements FFmpegService {
     private final S3Client s3Client;
     private final VodService vodService;
     private final R2Service r2Service;
+    private Map<String, List<Process>> runningProcesses = new HashMap<>();
 
     @Value("${cloudflare.r2.bucket}")
     private String R2Bucket;
@@ -151,6 +150,8 @@ public class FFmpegServiceImpl implements FFmpegService {
             Process processLive = livePb.start();
             Process processRecord = recordPb.start();
 
+            List<Process> processes = Arrays.asList(processLive, processRecord);
+            runningProcesses.put(streamKey, processes);
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(processLive.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -160,12 +161,16 @@ public class FFmpegServiceImpl implements FFmpegService {
 
             int exitCodeLive = processLive.waitFor();
             int exitCodeRecord = processRecord.waitFor();
+
+            //remove when finish
+            runningProcesses.remove(streamKey);
             if (exitCodeLive == 0 || exitCodeRecord == 0) {
                 log.info("FFmpeg finished recording and transcoding successfully for stream: " + streamKey);
             } else {
                 log.error("FFmpeg exited with code " + exitCodeLive);
             }
         } catch (IOException | InterruptedException e) {
+            runningProcesses.remove(streamKey);
             throw new RuntimeException("Failed to livestream using FFmpeg: ", e);
         }
     }
@@ -351,5 +356,22 @@ public class FFmpegServiceImpl implements FFmpegService {
     private void cleanTempVod(String pathToTmpFolder) throws IOException {
         FileUtils.deleteDirectory(new File(pathToTmpFolder));
         log.info("Clean raw vod: {}", pathToTmpFolder);
+    }
+
+    @Override
+    public void stopStreamingProcess(String streamKey) {
+        List<Process> processes = runningProcesses.get(streamKey);
+        if (processes != null) {
+            for (Process process : processes) {
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                    log.info("Stopping process '{}'", streamKey);
+                }
+            }
+            runningProcesses.remove(streamKey);
+            log.info("Stopped all process '{}'", streamKey);
+        } else {
+            log.info("Process '{}' not found", streamKey);
+        }
     }
 }

@@ -335,6 +335,76 @@ public class VodServiceImpl implements VodService {
         }).collect(Collectors.toList());
     }
 
+    @Override
+    public PaginationResponse<VodResponse> getAllVodsHomePage(VodGetRequest request) {
+        Pageable pageable = PageRequest.of(0, request.getLimit());
+        List<Vod> vods;
+
+        String sortBy = request.getSortBy() != null ? request.getSortBy() : "createdAt";
+        String order = request.getOrder() != null ? request.getOrder() : "DESC";
+
+        if ("views".equals(sortBy)) {
+            if (request.nextCursor != null) {
+                Long cursor = ((Number) request.getNextCursor()).longValue();
+                if ("ASC".equals(order)) {
+                    vods = vodRepository.findNextPageByViewsAsc(cursor, pageable);
+                } else {
+                    vods = vodRepository.findNextPageByViewsDesc(cursor, pageable);
+                }
+            } else {
+                vods = vodRepository.findAll(
+                        PageRequest.of(0, request.getLimit(),
+                                Sort.by(Sort.Direction.fromString(order), "totalView"))
+                ).getContent();
+            }
+        } else { //"createdAt"
+            if (request.nextCursor != null) {
+                Instant cursor = Instant.parse((String) request.getNextCursor());
+                if ("ASC".equals(order))
+                    vods = vodRepository.findNextPageByCreatedAtAsc(cursor, pageable);
+                else
+                    vods = vodRepository.findNextPageByCreatedAtDesc(cursor, pageable);
+
+            } else {
+                vods = vodRepository.findAll(
+                        PageRequest.of(0, request.getLimit(),
+                                Sort.by(Sort.Direction.fromString(order), "createdAt"))
+                ).getContent();
+
+            }
+        }
+
+        boolean hasNext = vods.size() == request.getLimit();
+        Object nextCursor = null;
+
+        if (hasNext) {
+            Vod lastVod = vods.get(vods.size() - 1);
+            if ("views".equals(sortBy)) {
+                nextCursor = lastVod.getTotalView();
+            } else {
+                nextCursor = lastVod.getCreatedAt();
+            }
+        }
+
+        return PaginationResponse.<VodResponse>builder()
+                .hasNext(hasNext)
+                .nextCursor(nextCursor)
+                .items(vods.stream().map(vod -> {
+                            Channel channel = vod.getChannel();
+                            ChannelCacheResponse channelResponse = new ChannelCacheResponse(
+                                    channel.getId().toString(),
+                                    channel.getDisplayName(),
+                                    channel.getAvatarUrl(),
+                                    channel.getOwner().getId().toString(),
+                                    channel.getFollowersCount().longValue()
+                            );
+                            String pendingViewKey = VodsRedisKey.acceptedViewKey(vod.getId().toString());
+                            Long view = getCurrentView(vod, pendingViewKey);
+                            return VodMapper.toVodResponse(vod, view, channelResponse);
+                        }).toList())
+                .build();
+    }
+
     /**
      * For administrator
      */

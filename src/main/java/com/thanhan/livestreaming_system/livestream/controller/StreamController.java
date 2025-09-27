@@ -125,7 +125,12 @@ public class StreamController {
                 .build();
     }
 
-
+    @GetMapping("/home")
+    public ApiResponse<List<StreamCardResponse>> getAllLiveStreaming() {
+        return ApiResponse.<List<StreamCardResponse>>builder()
+                .data(streamService.getAllLivestreamingCards())
+                .build();
+    }
     @CrossOrigin(origins = "http://localhost:3000", exposedHeaders = "Content-Disposition")
     @PostMapping("/download")
     public ResponseEntity<Resource> downloadRecordingLivestream(@RequestParam("key") String key) {

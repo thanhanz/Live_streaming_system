@@ -24,6 +24,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.bcel.Const;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +32,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -39,6 +41,8 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -65,11 +69,13 @@ public class StreamServiceImpl implements StreamService {
     @Value("${cloudflare.r2.public-url-id}")
     private String publicR2Id;
 
-//    @Value("${}")
     private String rtmpUrlHttp = "http://rtmp-server:81/control";
     /*
         Thay = ten domain chu khong nen su dung Id nay`
      */
+
+    private String inputRtmpUrl = "rtmp://34.87.87.173:1935/live/";
+
     public String getPublicR2Url() {
         return "https://" + publicR2Id + ".r2.dev/";
     }
@@ -84,7 +90,7 @@ public class StreamServiceImpl implements StreamService {
         streamSession.setDescription(request.description());
         streamSession.setStatus(StreamStatus.PREPARING);
         String generateStreamKey = UUID.randomUUID().toString();
-        String rtmpUrl = "rtmp://localhost:1935/live/";
+        String rtmpUrl = inputRtmpUrl;
 
         streamSession.setStreamKey(generateStreamKey);
         streamSession.setRtmpUrl(rtmpUrl);
@@ -137,6 +143,7 @@ public class StreamServiceImpl implements StreamService {
         }
 
         streamSession.setStatus(StreamStatus.STREAMING);
+        streamSession.setCreatedAt(Instant.now());
         streamRepository.save(streamSession);
         return true;
     }
@@ -164,12 +171,23 @@ public class StreamServiceImpl implements StreamService {
     public void startStreaming(String streamKey) throws IOException {
         //Send event start transcode livestream
         Stream stream = streamRepository.findByStreamKey(streamKey);
+
+        //Temporarily lock
         streamTranscodeProducer.sendMessage(streamKey);
 
         Long channelId = stream.getChannel().getId();
 
         websocketService.sentLiveStreamStatus(channelId, "streaming");
         streamTranscodeProducer.sendToSearchConsumer(stream,"streaming");
+    }
+
+    @Override
+    public List<StreamCardResponse> getAllLivestreamingCards() {
+        return streamRepository.getAllLivestreamings().stream().map(s -> {
+            String currentViewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
+            Integer currentViewer = redisTemplate.opsForSet().size(currentViewsKey).intValue();
+            return StreamMapper.toStreamCardResponse(s,currentViewer);
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -217,6 +235,15 @@ public class StreamServiceImpl implements StreamService {
 
         if (redisTemplate.hasKey(listBannedKey))
             redisTemplate.delete(listBannedKey);
+
+        try {
+            Path hlsPath = Paths.get("/var/www/html/hls", stream.getStreamKey());
+            FileSystemUtils.deleteRecursively(hlsPath);
+            log.info("[DELETED HLS FILE] in: " + stream.getStreamKey());
+        } catch (Exception e) {
+            log.error("Failed to delete hls file in: {}", stream.getStreamKey(), e);
+        }
+
     }
 
     private void uploadRecordLivestreamToR2(String streamKey) {
@@ -259,7 +286,7 @@ public class StreamServiceImpl implements StreamService {
     public StreamSessionResponse getStreamById(String streamId) {
         Stream stream = streamRepository.findById(Long.valueOf(streamId)).orElseThrow(() -> new EntityNotFoundException("Stream not found: " + streamId));
 
-        if (stream.getStatus() != StreamStatus.STREAMING) {
+        if (stream.getStatus() == StreamStatus.PREPARING) {
             throw new RuntimeException("Stream is not publish yet: " + streamId);
         }
 

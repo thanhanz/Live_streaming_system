@@ -9,7 +9,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - /d/SpringBootProject/LiveStreamingSystem/postgres-data:/var/lib/postgresql/data
+      - /home/user/postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "postgres" ]
       interval: 5s
@@ -31,7 +31,6 @@ services:
       - "1935:1935"  #OBS phat RTMP
       - "8082:81" #HTTP de xem HLS (index.m3u8) from OBS
     volumes:
-      #- /d/SpringBootProject/LiveStreamingSystem/storage-video:/var/www/html/hls
       - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
     depends_on:
       live-stream-website:
@@ -75,7 +74,7 @@ services:
     networks:
       - live-stream-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8081/livestream/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://34.87.87.173:8081/livestream/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -100,8 +99,7 @@ services:
       - OAUTH2-GOOGLE-CLIENT-SECRET=${OAUTH2-GOOGLE-CLIENT-SECRET}
       - EMAIL_ADDRESS=${EMAIL_ADDRESS}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-    volumes:
-      - ./hls:/var/www/html/hls  # Mount HLS directory để FFmpeg có thể ghi
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.19.3
     container_name: elasticsearch
@@ -117,7 +115,7 @@ services:
     networks:
       - live-stream-network
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://34.87.87.173:9200/_cluster/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10

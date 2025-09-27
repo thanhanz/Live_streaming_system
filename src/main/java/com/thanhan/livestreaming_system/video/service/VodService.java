@@ -26,6 +26,7 @@ public interface VodService {
     void addTags(Long vodId, TagRequest request);
     List<VodResponse> getVodsByTagName(String tagName);
     List<VodResponse> getVodsByCategoryId(Long categoryId);
+    PaginationResponse<VodResponse> getAllVodsHomePage(VodGetRequest request);
 
     /**
      * Admin service

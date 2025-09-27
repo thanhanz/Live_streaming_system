@@ -1,6 +1,7 @@
 package com.thanhan.livestreaming_system.livestream.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.thanhan.livestreaming_system.chat.entity.ChatMessage;
 import com.thanhan.livestreaming_system.user.entity.Channel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Table(name = "StreamSessions")
 @Entity
@@ -59,4 +62,7 @@ public class Stream {
     private Integer viewerCount = 0;
 
     private Boolean active = true;
+
+    @OneToMany(mappedBy = "stream", orphanRemoval = true, cascade = CascadeType.REMOVE)
+    private List<ChatMessage> messageList = new ArrayList<>();
 }

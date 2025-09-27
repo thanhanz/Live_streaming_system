@@ -41,4 +41,13 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
     @Query("SELECT s FROM Stream s WHERE s.createdAt < :createdAt AND s.status != 'PREPARING' ORDER BY s.createdAt DESC")
     List<Stream> getAllStreamPaginate(@Param("createdAt") Instant cursor, Pageable pageable);
 
+    @Query(value = "SELECT s.* FROM stream_sessions s JOIN channels c ON s.channel_id = c.id " +
+            " WHERE s.title ILIKE CONCAT('%', :query, '%') OR c.display_name ILIKE CONCAT('%', :query, '%') " +
+            " ORDER BY s.channel_id DESC s.created_at DESC", nativeQuery = true)
+    List<Stream> searchStream(@Param("query") String query, Pageable pageable);
+
+    @Query("SELECT s FROM Stream s WHERE s.status = 'STREAMING' " +
+            "AND s.thumbnailUrl IS NOT NULL " +
+            "AND s.active = true ORDER BY s.createdAt DESC")
+    List<Stream> getAllLivestreamings();
 }

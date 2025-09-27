@@ -28,7 +28,7 @@ public interface StreamService {
 
     Long countTotalStreams();
     List<StreamStatsResponse> statisticsStreams(Integer year);
-
+    List<StreamCardResponse> getAllLivestreamingCards();
     void deleteLivestream(Long streamId);
     void banStream(String streamId);
     PaginationResponse<StreamAdminResponse> getAllStreams(PaginateGetStreamRequest request);

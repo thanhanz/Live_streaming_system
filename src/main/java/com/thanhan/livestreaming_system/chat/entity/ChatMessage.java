@@ -29,12 +29,11 @@ public class ChatMessage {
     @Column
     private Instant timestamp;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stream_id")
+    @ManyToOne
+    @JoinColumn(name = "stream_id", nullable = false)
     private Stream stream;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User sender;
-
 }

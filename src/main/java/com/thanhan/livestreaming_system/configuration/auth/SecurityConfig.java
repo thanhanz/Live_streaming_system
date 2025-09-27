@@ -41,8 +41,28 @@ public class SecurityConfig {
                                                 "/api/users/register",
                                                 "/api/stream/on_publish",
                                                 "/api/stream/finish",
-                                                "/api/vods/**"
-
+    };
+    private final String[] ADMIN_ENDPOINTS = {
+            "/api/users/get-all",
+            "/api/users/search",
+            "/api/users/total-users",
+            "/api/users/{userId}",
+            "/api/users/ban-user",
+            "/api/users/unban-user",
+            "/api/channels/get-all",
+            "/api/channels/search",
+            "/api/channels/total",
+            "/api/channels/{channelId}",
+            "/api/channels/top3-followest",
+            "/api/vods/get-all",
+            "/api/vods/search",
+            "/api/vods/total",
+            "/api/vods/stats",
+            "/api/vods/top5-viewest",
+            "/api/stream/get-all",
+            "/api/stream/count",
+            "/api/stream/stats",
+            "/api/stream/ban"
     };
     @Value("${jwt.signer-key}")
     private String SIGNER_KEY;
@@ -51,16 +71,32 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(request ->
-                                request .requestMatchers(OPTIONS,"/**").permitAll()
-                                        .requestMatchers(GET, "/api/comments/**").permitAll()
-                                        .requestMatchers("/api/payment/**").permitAll()
+                                request
                                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                                        .requestMatchers(GET, "/api/channels/**").permitAll()
+                                        .requestMatchers(GET, "/api/categories/**").permitAll()
+                                        .requestMatchers(GET, "/api/vods/**").permitAll()
+                                        .requestMatchers(GET, "/api/stream/**").permitAll()
+                                        .requestMatchers(GET, "/api/comments/**").permitAll()
+                                        .requestMatchers(GET, "/api/membership-packages/channel/**").permitAll()
+                                        .requestMatchers("/api/search/**").permitAll()
+                                        .requestMatchers("/api/vods/*/view").permitAll()
+                                        .requestMatchers("/api/vods/*/join").permitAll()
+                                        .requestMatchers(OPTIONS,"/**").permitAll()
                                         .requestMatchers("/websocket/**").permitAll()
                                         .requestMatchers("/actuator/**").permitAll()
-                                        .anyRequest().authenticated());
+
+                                        .requestMatchers("/auth/introspect").authenticated()
+                                        .requestMatchers(GET, "/api/vods/upload/**").authenticated()
+                                        .requestMatchers("/api/users/current-user").authenticated()
+                                        .requestMatchers("/livestream/api/users/my-channel").authenticated()
+                                        .requestMatchers("/api/**").authenticated()
+                                        .requestMatchers(POST,"/api/users/channel/**").authenticated()
+                                        .requestMatchers(ADMIN_ENDPOINTS).hasRole("ADMIN")
+
+                                        .anyRequest().permitAll());
         http.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-                                //Covert "SCOPE_... to ROLE_..."
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
 //                        .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
         );
@@ -78,6 +114,7 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");
         grantedAuthoritiesConverter.setAuthorityPrefix("");
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();

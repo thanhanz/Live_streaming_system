@@ -35,9 +35,14 @@ public class VodController {
                                       @RequestParam("title") String title,
                                       @RequestParam("channelId") Long channelId,
                                       @RequestParam("description") String description,
+                                      @RequestParam(value = "tags", required = false) List<String> tags,
                                       @RequestParam(value = "categoryId", required = false) Long categoryId) throws AppException {
         //prepare upload video
         String videoId = vodService.uploadMetadataForVod(new VodCreationRequest(title, description, channelId), thumbnail);
+
+        if (!tags.isEmpty()) {
+            vodService.addTags(Long.valueOf(videoId), new TagRequest(tags));
+        }
 
         if (categoryId != null) {
             vodService.assignCategory(Long.valueOf(videoId), categoryId);
@@ -145,10 +150,22 @@ public class VodController {
                 .build();
     }
 
+    @GetMapping("/home")
+    public ApiResponse<PaginationResponse<VodResponse>> getHomepage(@RequestParam(required = false) Integer limit,
+                                                                    @RequestParam(required = false) String sortBy,
+                                                                    @RequestParam(required = false) String order,
+                                                                    @RequestParam(required = false) String cursor) throws AppException {
+        VodGetRequest getRequest = VodGetRequest.of(limit, sortBy, order, cursor);
+
+        return ApiResponse.<PaginationResponse<VodResponse>>builder()
+                .message("Get paginated vod")
+                .data(vodService.getAllVodsHomePage(getRequest))
+                .build();
+    }
+
     /**
      * For administrator
      */
-
     @GetMapping("/get-all")
     public ApiResponse<PaginationResponse<VodAdminResponse>> getAllVods(@RequestParam(required = false) Integer limit,
                                                                         @RequestParam(required = false) String sortBy,
@@ -161,6 +178,7 @@ public class VodController {
                 .data(vodService.getAllVods(getRequest))
                 .build();
     }
+
 
     @GetMapping("/search")
     public ApiResponse<List<VodAdminResponse>> searchVodsWithTitleOrChannelName(@RequestParam String query) throws AppException {

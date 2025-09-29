@@ -74,7 +74,7 @@ services:
     networks:
       - live-stream-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://34.87.87.173:8081/livestream/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://35.185.184.243:8081/livestream/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -115,7 +115,7 @@ services:
     networks:
       - live-stream-network
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://34.87.87.173:9200/_cluster/health || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://35.185.184.243:9200/_cluster/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 10

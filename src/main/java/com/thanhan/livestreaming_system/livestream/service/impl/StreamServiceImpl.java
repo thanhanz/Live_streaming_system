@@ -74,7 +74,7 @@ public class StreamServiceImpl implements StreamService {
         Thay = ten domain chu khong nen su dung Id nay`
      */
 
-    private String inputRtmpUrl = "rtmp://34.87.87.173:1935/live/";
+    private String inputRtmpUrl = "rtmp://35.185.184.243:1935/live/";
 
     public String getPublicR2Url() {
         return "https://" + publicR2Id + ".r2.dev/";

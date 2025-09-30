@@ -105,4 +105,4 @@ vnpay:
   version: 2.1.0
   command: pay
   otherType: other
-  return-url:  http://localhost:3000/channels/1
+  return-url:  http://localhost:3000/payment-return

@@ -52,7 +52,7 @@ public class VnpayPaymentServiceImpl implements PaymentService {
         long amount = mpk.getPrice() * 100L;
 
         String bankCode = request.getParameter("bankCode");
-        Map<String, String> vnpParamsMap = vnpayConfig.getVNPayConfig(mpk.getId().toString(), user.getUsername());
+        Map<String, String> vnpParamsMap = vnpayConfig.getVNPayConfig(mpk.getId().toString(), user.getUsername(), mpk.getChannel().getId().toString());
         vnpParamsMap.put("vnp_Amount", String.valueOf(amount));
         if (bankCode != null && !bankCode.isEmpty()) {
             vnpParamsMap.put("vnp_BankCode", bankCode);

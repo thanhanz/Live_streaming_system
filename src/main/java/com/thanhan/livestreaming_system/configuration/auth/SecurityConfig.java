@@ -41,6 +41,7 @@ public class SecurityConfig {
                                                 "/api/users/register",
                                                 "/api/stream/on_publish",
                                                 "/api/stream/finish",
+                                                "/api/payment/payment_callback"
     };
     private final String[] ADMIN_ENDPOINTS = {
             "/api/users/get-all",

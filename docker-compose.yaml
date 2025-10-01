@@ -73,6 +73,8 @@ services:
         condition: service_healthy
     networks:
       - live-stream-network
+    volumes:
+      - ./hls:/var/www/html/hls
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8081/livestream/actuator/health" ]
       interval: 10s

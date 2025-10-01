@@ -74,7 +74,8 @@ public class StreamServiceImpl implements StreamService {
         Thay = ten domain chu khong nen su dung Id nay`
      */
 
-    private String inputRtmpUrl = "rtmp://35.185.184.243:1935/live/";
+//    private String inputRtmpUrl = "rtmp://35.185.184.243:1935/live/";
+    private String inputRtmpUrl = "rtmp://localhost:1935/live/";
 
     public String getPublicR2Url() {
         return "https://" + publicR2Id + ".r2.dev/";
@@ -173,7 +174,7 @@ public class StreamServiceImpl implements StreamService {
         Stream stream = streamRepository.findByStreamKey(streamKey);
 
         //Temporarily lock
-        streamTranscodeProducer.sendMessage(streamKey);
+//        streamTranscodeProducer.sendMessage(streamKey);
 
         Long channelId = stream.getChannel().getId();
 
@@ -185,7 +186,7 @@ public class StreamServiceImpl implements StreamService {
     public List<StreamCardResponse> getAllLivestreamingCards() {
         return streamRepository.getAllLivestreamings().stream().map(s -> {
             String currentViewsKey = StreamCacheKey.cacheConcurrencyViewers(s.getId().toString());
-            Integer currentViewer = redisTemplate.opsForSet().size(currentViewsKey).intValue();
+            Integer currentViewer = redisTemplate.opsForZSet().size(currentViewsKey).intValue();
             return StreamMapper.toStreamCardResponse(s,currentViewer);
         }).collect(Collectors.toList());
     }
@@ -218,7 +219,8 @@ public class StreamServiceImpl implements StreamService {
     }
 
     private void finishDataLivestream(Stream stream) {
-        uploadRecordLivestreamToR2(stream.getStreamKey());
+
+//        uploadRecordLivestreamToR2(stream.getStreamKey());
 
         String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(stream.getId().toString());
         String listBannedKey = ChatUtils.bannedChatKey(stream.getId().toString());
@@ -243,7 +245,6 @@ public class StreamServiceImpl implements StreamService {
         } catch (Exception e) {
             log.error("Failed to delete hls file in: {}", stream.getStreamKey(), e);
         }
-
     }
 
     private void uploadRecordLivestreamToR2(String streamKey) {
@@ -292,7 +293,9 @@ public class StreamServiceImpl implements StreamService {
 
         String currentViewCountKey = StreamCacheKey.cacheConcurrencyViewers(streamId);
 
-        Integer currentViewer = redisTemplate.opsForSet().size(currentViewCountKey).intValue();
+        Integer currentViewer = redisTemplate.hasKey(currentViewCountKey) ?
+                redisTemplate.opsForZSet().size(currentViewCountKey).intValue() :
+                0;
         Long totalFollowers = channelService.countFollower(stream.getChannel().getId());
         return StreamMapper.toStreamResponse(stream, currentViewer, totalFollowers);
     }
@@ -351,7 +354,7 @@ public class StreamServiceImpl implements StreamService {
             throw new RuntimeException("Live stream not found in channel: " + channelId);
         }
         String currentViewsKey = StreamCacheKey.cacheConcurrencyViewers(stream.getId().toString());
-        Integer currentViewer = redisTemplate.opsForSet().size(currentViewsKey).intValue();
+        Integer currentViewer = redisTemplate.opsForZSet().size(currentViewsKey).intValue();
 
         return StreamMapper.toStreamCardResponse(stream, currentViewer);
     }

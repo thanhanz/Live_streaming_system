@@ -141,7 +141,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://live-streaming-liart.vercel.app/"));
         configuration.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",

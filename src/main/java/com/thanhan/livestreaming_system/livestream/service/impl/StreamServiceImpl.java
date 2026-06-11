@@ -74,8 +74,8 @@ public class StreamServiceImpl implements StreamService {
         Thay = ten domain chu khong nen su dung Id nay`
      */
 
-//    private String inputRtmpUrl = "rtmp://35.185.184.243:1935/live/";
-    private String inputRtmpUrl = "rtmp://localhost:1935/live/";
+    private String inputRtmpUrl = "rtmp://34.124.202.252:1935/live/";
+//    private String inputRtmpUrl = "rtmp://localhost:1935/live/";
 
     public String getPublicR2Url() {
         return "https://" + publicR2Id + ".r2.dev/";
@@ -174,7 +174,7 @@ public class StreamServiceImpl implements StreamService {
         Stream stream = streamRepository.findByStreamKey(streamKey);
 
         //Temporarily lock
-//        streamTranscodeProducer.sendMessage(streamKey);
+        streamTranscodeProducer.sendMessage(streamKey);
 
         Long channelId = stream.getChannel().getId();
 
@@ -220,7 +220,7 @@ public class StreamServiceImpl implements StreamService {
 
     private void finishDataLivestream(Stream stream) {
 
-//        uploadRecordLivestreamToR2(stream.getStreamKey());
+        uploadRecordLivestreamToR2(stream.getStreamKey());
 
         String concurrencyViewersKey = StreamCacheKey.cacheConcurrencyViewers(stream.getId().toString());
         String listBannedKey = ChatUtils.bannedChatKey(stream.getId().toString());

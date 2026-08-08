@@ -30,8 +30,10 @@ public class CleanViewerDisconnectedTask {
         if (isLiveStream != null && isLiveStream.size() > 0) { //Co nguoi dang live stream
             for (String streamId : isLiveStream) {
                 String zSetSessionScore = StreamCacheKey.cacheConcurrencyViewers(streamId);
+
                 Set<String> expiredSessionIds = redisTemplate.opsForZSet()
                         .rangeByScore(zSetSessionScore, 0, now - validTime); //Lấy tất cả sessionId đã không xem trong 45s (validTime)
+                        
                 if (expiredSessionIds != null && expiredSessionIds.size() > 0) {
                     redisTemplate.opsForZSet().remove(zSetSessionScore, expiredSessionIds.toArray());
                 }

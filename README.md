@@ -2,6 +2,10 @@
 
 Spring Boot backend for a livestreaming platform. The project handles user/channel management, live streaming sessions, VOD upload and HLS transcoding, real-time chat, search, memberships, and payment integration.
 
+## Frontend
+
+The ReactJS frontend is available in the restored repository: [Live-streaming-ReactJs](https://github.com/thanhanz/Live-streaming-ReactJs).
+
 ## Main Purpose
 
 This project is the backend for a streaming platform with two core content flows:
